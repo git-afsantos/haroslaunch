@@ -65,13 +65,12 @@ class SchemaError(Exception):
         return cls('<{}> cannot be a child of <{}>'.format(
             child_tag_name, parent_tag_name))
 
-    @classmethod
-    def invalid_value(cls, attr, value):
-        return cls('{!r} is not a valid value for {!r}'.format(value, attr))
 
-    @classmethod
-    def empty_value(cls, attr):
-        return cls('{!r} must not be empty'.format(attr))
+def _invalid_value(attr, value):
+    return ValueError('{!r} is not a valid value for {!r}'.format(value, attr))
+
+def _empty_value(attr):
+    return ValueError('{!r} must not be empty'.format(attr))
 
 
 ###############################################################################
@@ -157,12 +156,12 @@ class BaseLaunchTag(object):
         param_type = self.ATTRIBUTES[attr]
         result, resolved = self._resolve(xml_value, param_type, scope)
         if no_empty and result == '':
-            raise SchemaError.empty_value(attr)
+            raise _empty_value(attr)
         enum = self.ENUMS.get(attr)
         if not enum:
             return result
         if resolved and result not in enum:
-            raise SchemaError.invalid_value(attr, result)
+            raise _invalid_value(attr, result)
         return result
 
     def _resolve(self, value, param_type, scope):
@@ -472,16 +471,10 @@ class RemapTag(BaseLaunchTag):
         return self.attributes['to']
 
     def resolve_from(self, scope):
-        result = self._resolve_req_attr('from', scope)
-        if not result:
-            raise SchemaError.empty_value('from')
-        return result
+        return self._resolve_req_attr('from', scope, no_empty=True)
 
     def resolve_to(self, scope):
-        result = self._resolve_req_attr('to', scope)
-        if result == '':
-            raise SchemaError.empty_value('to')
-        return result
+        return self._resolve_req_attr('to', scope, no_empty=True)
 
 
 class ParamTag(BaseLaunchTag):
@@ -867,16 +860,8 @@ class TestTag(BaseLaunchTag):
     def resolve_time_limit(self, scope):
         result = self._resolve_attr('time-limit', scope, default='60.0')
         if isinstance(result, float) and result <= 0.0:
-            raise SchemaError.invalid_value('time-limit', result)
+            raise _invalid_value('time-limit', result)
         return result
-
-    def _check_tag_schema(self):
-        try:
-            value = float(self.time_limit_attr)
-            if value <= 0.0:
-                raise SchemaError.invalid_value('time-limit', value)
-        except ValueError:
-            pass
 
 
 ###############################################################################
