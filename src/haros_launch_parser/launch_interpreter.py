@@ -80,9 +80,16 @@ def _launch_location(filepath, tag):
         'column': tag.column
     }
 
-def _strict_value(substitution_result):
+def _literal(substitution_result):
+    if substitution_result is None:
+        return None
     if not substitution_result.is_resolved:
         raise SanityError.cannot_resolve(substitution_result.unknown)
+    return substitution_result.value
+
+def _literal_or_None(substitution_result):
+    if substitution_result is None or not substitution_result.is_resolved:
+        return None
     return substitution_result.value
 
 def _require(tag, attr):
@@ -240,17 +247,17 @@ class LaunchInterpreter(object):
         if condition is not True:
             raise SanityError.conditional_tag(tag, condition.unknown)
         assert condition is True
-        name = tag.resolve_name(scope)
-        name = _strict_value(name) # FIXME from this point onward
+        name = _literal(tag.resolve_name(scope))
         value = tag.resolve_value(scope)
-        if value is not None:
-            # define arg with final value
-            scope.set_arg(name, value)
-        else:
+        if value is None:
             # declare arg (with default value if available)
-            # if value is None after resolving, scope.get_arg works as intended
-            value = _resolve_opt(tag, scope, 'default')
+            # `scope.get_arg()` works as intended with `None`
+            value = _literal_or_None(tag.resolve_default(scope))
             scope.declare_arg(name, default=value)
+        else:
+            # define arg with final value
+            value = value.value if value.is_resolved else None
+            scope.set_arg(name, value)
 
     def _node_tag(self, tag, scope, condition):
         pass
