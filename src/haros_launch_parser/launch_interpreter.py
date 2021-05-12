@@ -81,8 +81,6 @@ def _launch_location(filepath, tag):
     }
 
 def _literal(substitution_result):
-    if substitution_result is None:
-        return None
     if not substitution_result.is_resolved:
         raise SanityError.cannot_resolve(substitution_result.unknown)
     return substitution_result.value
@@ -268,9 +266,8 @@ class LaunchInterpreter(object):
             return
         if condition is not True:
             raise SanityError.conditional_tag(tag, condition.unknown)
-        source = _resolve_strict(tag, scope, 'from')
-        target = _require(tag, 'to')
-        target = _resolve_opt_value(target, scope)
+        source = tag.resolve_from(scope).as_string()
+        target = tag.resolve_to(scope).as_string()
         scope.set_remap(source, target)
 
     def _param_tag(self, tag, scope, condition):

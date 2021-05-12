@@ -305,10 +305,23 @@ _COMMANDS = {
 _Unknown = namedtuple('UnknownValue', ('cmd', 'args', 'text'))
 
 SubstitutionResult = namedtuple('SubstitutionResult',
-    ('value', 'param_type', 'is_resolved'))
-SubstitutionResult.unknown = property(
-    lambda self: None if self.is_resolved else self.value)
-# `value` contains unknown values if not resolved
+    ('value', 'param_type', 'is_resolved', 'unknown'))
+# `value` contains string and unknown parts if not resolved
+
+def _result_as_string(self):
+    if self.is_resolved:
+        return str(self.value)
+    return ''.join((x if isinstance(x, basestring) else '$(?)')
+                   for x in self.parts)
+
+SubstitutionResult.as_string = _result_as_string
+
+def new_literal_result(value, param_type):
+    return SubstitutionResult(value, param_type, True, None)
+
+def new_unknown_result(parts, param_type):
+    unknown = tuple(x for x in parts if isinstance(x, _Unknown))
+    return SubstitutionResult(parts, param_type, False, unknown)
 
 # Usage:
 #   value = '$(find robot_pkg)/$(arg robot_name)'
@@ -361,19 +374,20 @@ class UnresolvedValue(object):
     # throws SubstitutionError, ValueError
     def resolve(self, scope):
         parts = []
-        unknown = []
+        unknown = False
         for cmd in self._commands:
             try:
                 value = cmd.resolve(scope)
                 assert isinstance(value, basestring)
                 parts.append(value)
             except UnknownValueError as e:
-                unknown.append(_Unknown(e.args[0], e.args[1], str(cmd)))
+                unknown = True
+                parts.append(_Unknown(e.args[0], e.args[1], str(cmd)))
         if unknown:
-            return SubstitutionResult(unknown, self.param_type, False)
+            return new_unknown_result(parts, self.param_type)
         value = ''.join(parts)
         value = convert_value(value, param_type=self.param_type)
-        return SubstitutionResult(value, self.param_type, True)
+        return new_literal_result(value, self.param_type)
 
     def _build_command_list(self, value):
         self._commands = []
