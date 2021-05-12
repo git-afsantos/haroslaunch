@@ -130,12 +130,16 @@ class BaseLaunchTag(object):
         return self._resolve_attr('unless', scope)
 
     def _resolve_req_attr(self, attr, scope, no_empty=False):
+        # always returns a `SubstitutionResult`
         result = self._resolve_attr(attr, scope, no_empty=no_empty)
         if result is None:
             raise SchemaError.missing_attr(attr)
         return result
 
     def _resolve_attr(self, attr, scope, default=None, no_empty=False):
+        # returns `None` if `attr` is not defined in XML
+        #   and no `default` is provided
+        # returns `SubstitutionResult` otherwise
         xml_value = self.attributes.get(attr, default)
         if xml_value is None:
             return None
