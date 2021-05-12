@@ -11,6 +11,7 @@ from .launch_scope import (
     new_if, new_unless,
     ArgError, LaunchScope, NodeScope, GroupScope
 )
+from .launch_xml_parser import SchemaError
 from .sub_parser import (
     convert_to_bool, convert_value,
     SubstitutionError, UnresolvedValue
@@ -47,6 +48,11 @@ class SanityError(Exception):
         unknown = ', '.join(unk.text for unk in unknown)
         return cls(cls._NEED_VALUE.format(attr=attr, tag=tag, unk=unknown))
 
+    @classmethod
+    def cannot_resolve(cls, unknown):
+        what = ', '.join(x.text for x in unknown)
+        return cls('unable to resolve ' + what)
+
     _NO_EMPTY = '{attr!r} cannot be empty in {tag}'
     @classmethod
     def no_empty(cls, tag, attr):
@@ -74,6 +80,11 @@ def _launch_location(filepath, tag):
         'column': tag.column
     }
 
+def _strict_value(substitution_result):
+    if not substitution_result.is_resolved:
+        raise SanityError.cannot_resolve(substitution_result.unknown)
+    return substitution_result.value
+
 def _require(tag, attr):
     value = tag.attributes.get(attr)
     if value is None:
@@ -83,27 +94,19 @@ def _require(tag, attr):
 def _resolve_condition(tag, scope):
     # `tag` is a Tag object from .launch_xml_parser
     # `scope` is a Scope object from .launch_scope
-    if not tag.is_conditional:
-        return True
-    value = UnresolvedValue.of_bool(tag.if_condition)
-    t = value.resolve(scope)
-    if t is False:  # not included
-        return False
-    if t is None:   # unknown
-        assert value.unknown
+    t = tag.resolve_if(scope)
+    if t is None: # 'if' not defined in XML
+        f = tag.resolve_unless(scope)
+        if f is None: # 'unless' not defined in XML
+            return True
+        if f.is_resolved:
+            return not f.value
         loc = _launch_location(scope.filepath, tag)
-        return new_if(value.original, value.unknown, location=loc)
-    assert t is True
-    value = UnresolvedValue.of_bool(tag.unless_condition)
-    f = value.resolve(scope)
-    if f is True:   # not included
-        return False
-    if f is None:   # unknown
-        assert value.unknown
-        loc = _launch_location(scope.filepath, tag)
-        return new_unless(value.original, value.unknown, location=loc)
-    assert f is False
-    return True
+        return new_unless(tag.unless_attr, f.unknown, location=loc)
+    if t.is_resolved:
+        return t.value
+    loc = _launch_location(scope.filepath, tag)
+    return new_if(tag.if_attr, t.unknown, location=loc)
 
 def _resolve_strict(tag, scope, attr):
     original = tag.attributes.get(attr)
@@ -164,6 +167,7 @@ class LaunchInterpreter(object):
         # log debug interpret(filepath, args=args)
         tree = self.system.request_parse_tree(filepath)
         assert tree.tag == 'launch'
+        tree.check_schema()
         args = dict(args) if args is not None else {}
         scope = LaunchScope(filepath, self.system, args=args)
         self._interpret_tree(tree, scope)
@@ -178,6 +182,7 @@ class LaunchInterpreter(object):
         for filepath in filepaths:
             tree = self.system.request_parse_tree(filepath)
             assert tree.tag == 'launch'
+            tree.check_schema()
             args = dict(args) if args is not None else {}
             scope = LaunchScope(filepath, self.system, args=args)
             self._interpret_tree(tree, scope)
@@ -186,11 +191,14 @@ class LaunchInterpreter(object):
         #for param in scope.parameters:
         #    self.configuration.parameters.add(param)
 
-    def _interpret_tree(self, parent_tag, scope):
-        for tag in parent_tag.children:
-            tag.check_schema()
+    def _interpret_tree(self, tree, scope):
+        for tag in tree.children:
             try:
-                condition = self._tag_condition(tag, scope)
+                tag.check_schema()
+            except SchemaError as err:
+                self._fail(tag, scope, err)
+            try:
+                condition = _resolve_condition(tag, scope)
             except SubstitutionError:
                 continue # TODO
             except ValueError:
@@ -232,11 +240,11 @@ class LaunchInterpreter(object):
         if condition is not True:
             raise SanityError.conditional_tag(tag, condition.unknown)
         assert condition is True
-        name = _resolve_strict(tag, scope, 'name')
-        value = tag.value
+        name = tag.resolve_name(scope)
+        name = _strict_value(name) # FIXME from this point onward
+        value = tag.resolve_value(scope)
         if value is not None:
             # define arg with final value
-            value = _resolve_opt_value(value, scope)
             scope.set_arg(name, value)
         else:
             # declare arg (with default value if available)
@@ -362,6 +370,5 @@ class LaunchInterpreter(object):
 
     def _fail(self, tag, scope, err):
         msg = str(err) or type(err).__name__
-        msg = 'in {path} [{line}:{col}]: {msg}'.format(
-            path=scope.filepath, line=tag.line, col=tag.column, msg=msg)
-        raise LaunchInterpreterError(msg)
+        raise LaunchInterpreterError('in {} <{}> [{}:{}]: {}'.format(
+            scope.filepath, tag.tag, tag.line, tag.column, msg))

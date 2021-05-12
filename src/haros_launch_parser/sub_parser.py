@@ -304,18 +304,24 @@ _COMMANDS = {
 
 _Unknown = namedtuple('UnknownValue', ('cmd', 'args', 'text'))
 
+SubstitutionResult = namedtuple('SubstitutionResult',
+    ('value', 'param_type', 'is_resolved'))
+SubstitutionResult.unknown = property(
+    lambda self: None if self.is_resolved else self.value)
+# `value` contains unknown values if not resolved
+
 # Usage:
 #   value = '$(find robot_pkg)/$(arg robot_name)'
 #   value = UnresolvedValue(value, param_type='string')
 #   result = value.resolve(scope)
-#   if result is None or value.unknown:
+#   if not result.is_resolved:
 #       print('Could not resolve ' + repr(value.original))
-#       for unk in value.unknown:
-#           print('The value of {} is unknown.'.format(unk.text))
+#       for x in result.unknown:
+#           print('The value of {} is unknown.'.format(x.text))
 #   else:
-#       print('Resolved to the string ' + repr(result))
+#       print('Resolved to the string ' + repr(result.value))
 class UnresolvedValue(object):
-    __slots__ = ('original', 'param_type', 'unknown', '_commands')
+    __slots__ = ('original', 'param_type', '_commands')
     # `original`: original string to parse and resolve
     # `param_type`: expected conversion type (str) or None
     # `_commands`: internal list of commands for value resolution
@@ -328,7 +334,6 @@ class UnresolvedValue(object):
             raise TypeError('expected a string: {!r}'.format(value))
         self.original = value
         self.param_type = param_type
-        self.unknown = []
         self._build_command_list(value)
 
     @classmethod
@@ -351,24 +356,24 @@ class UnresolvedValue(object):
     def of_yaml(cls, value):
         return cls(value, param_type=TYPE_YAML)
 
-    # returns a value converted to `self.param_type` if possible
-    # returns None if resolution is impossible
+    # returns a SubstitutionResult tuple
+    # `r.value` is converted to `self.param_type` if possible
     # throws SubstitutionError, ValueError
     def resolve(self, scope):
         parts = []
-        self.unknown = []
+        unknown = []
         for cmd in self._commands:
             try:
                 value = cmd.resolve(scope)
                 assert isinstance(value, basestring)
                 parts.append(value)
             except UnknownValueError as e:
-                unk = _Unknown(e.args[0], e.args[1], str(cmd))
-                self.unknown.append(unk)
-        if self.unknown:
-            return None
-        result = ''.join(parts)
-        return convert_value(result, param_type=self.param_type)
+                unknown.append(_Unknown(e.args[0], e.args[1], str(cmd)))
+        if unknown:
+            return SubstitutionResult(unknown, self.param_type, False)
+        value = ''.join(parts)
+        value = convert_value(value, param_type=self.param_type)
+        return SubstitutionResult(value, self.param_type, True)
 
     def _build_command_list(self, value):
         self._commands = []

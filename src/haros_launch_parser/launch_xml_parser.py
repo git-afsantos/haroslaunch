@@ -123,25 +123,11 @@ class BaseLaunchTag(object):
             raise SchemaError.invalid_child(child.tag, self.tag)
         self.children.append(child)
 
-    def resolve_condition(self, scope):
-        # `scope` is a Scope object from .launch_scope
-        if not self.is_conditional:
-            return True
-        value = UnresolvedValue.of_bool(self.if_attr)
-        t = value.resolve(scope)
-        if t is False:  # not included
-            return False
-        if t is None:   # unknown
-            return value
-        assert t is True
-        value = UnresolvedValue.of_bool(self.unless_attr)
-        f = value.resolve(scope)
-        if f is True:   # not included
-            return False
-        if f is None:   # unknown
-            return value
-        assert f is False
-        return True
+    def resolve_if(self, scope):
+        return self._resolve_attr('if', scope)
+
+    def resolve_unless(self, scope):
+        return self._resolve_attr('unless', scope)
 
     def _resolve_req_attr(self, attr, scope, no_empty=False):
         result = self._resolve_attr(attr, scope, no_empty=no_empty)
@@ -154,25 +140,18 @@ class BaseLaunchTag(object):
         if xml_value is None:
             return None
         param_type = self.ATTRIBUTES[attr]
-        result, resolved = self._resolve(xml_value, param_type, scope)
-        if no_empty and result == '':
-            raise _empty_value(attr)
-        enum = self.ENUMS.get(attr)
-        if not enum:
-            return result
-        if resolved and result not in enum:
-            raise _invalid_value(attr, result)
+        unresolved = UnresolvedValue(xml_value, param_type=param_type)
+        result = unresolved.resolve(scope)
+        if result.is_resolved:
+            value = result.value
+            if no_empty and value == '':
+                raise _empty_value(attr)
+            enum = self.ENUMS.get(attr)
+            if enum and value not in enum:
+                raise _invalid_value(attr, value)
+        else: # not resolved
+            assert result.unknown # there must be variables
         return result
-
-    def _resolve(self, value, param_type, scope):
-        unresolved = UnresolvedValue(value, param_type=param_type)
-        try:
-            result = unresolved.resolve(scope)
-        except ValueError as err:
-            raise SchemaError(err)
-        if result is None:
-            return (unresolved, False)
-        return (result, True)
 
     def check_schema(self):
         self._check_base_schema()
@@ -390,7 +369,7 @@ class NodeTag(BaseLaunchTag):
 
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
-        if result is True and self.ns_attr is None:
+        if result.value is True and self.ns_attr is None:
             raise SchemaError.missing_attr('ns')
         return result
 
@@ -593,17 +572,18 @@ class RosParamTag(BaseLaunchTag):
 
     def resolve_command(self, scope):
         result = self._resolve_attr('command', scope, default='load')
-        if result == 'load':
-            if self.file_attr is None and not self.text:
-                raise SchemaError.missing_attr('file')
-        elif result == 'dump':
-            if self.file_attr is None:
-                raise SchemaError.missing_attr('file')
-        elif result == 'delete':
-            if self.param_attr is None:
-                raise SchemaError.missing_attr('param')
-            if self.file_attr is not None:
-                raise SchemaError.incompatible('file', 'delete')
+        if result.is_resolved:
+            if result.value == 'load':
+                if self.file_attr is None and not self.text:
+                    raise SchemaError.missing_attr('file')
+            elif result.value == 'dump':
+                if self.file_attr is None:
+                    raise SchemaError.missing_attr('file')
+            elif result.value == 'delete':
+                if self.param_attr is None:
+                    raise SchemaError.missing_attr('param')
+                if self.file_attr is not None:
+                    raise SchemaError.incompatible('file', 'delete')
         return result
 
     def resolve_file(self, scope):
@@ -859,8 +839,8 @@ class TestTag(BaseLaunchTag):
 
     def resolve_time_limit(self, scope):
         result = self._resolve_attr('time-limit', scope, default='60.0')
-        if isinstance(result, float) and result <= 0.0:
-            raise _invalid_value('time-limit', result)
+        if result.is_resolved and result.value <= 0.0:
+            raise _invalid_value('time-limit', result.value)
         return result
 
 
