@@ -505,6 +505,22 @@ class ParamTag(BaseLaunchTag):
     def command_attr(self):
         return self.attributes.get('command')
 
+    @property
+    def is_value_param(self):
+        return self.attributes.get('value') is not None
+
+    @property
+    def is_textfile_param(self):
+        return self.attributes.get('textfile') is not None
+
+    @property
+    def is_binfile_param(self):
+        return self.attributes.get('binfile') is not None
+
+    @property
+    def is_command_param(self):
+        return self.attributes.get('command') is not None
+
     def resolve_name(self, scope):
         return self._resolve_req_attr('name', scope)
 

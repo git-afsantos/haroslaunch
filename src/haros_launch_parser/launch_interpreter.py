@@ -13,7 +13,8 @@ from .launch_scope import (
 )
 from .launch_xml_parser import SchemaError
 from .sub_parser import (
-    convert_to_bool, convert_value,
+    TYPE_STRING,
+    convert_to_bool, convert_value, new_literal_result,
     SubstitutionError, UnresolvedValue
 )
 
@@ -272,38 +273,37 @@ class LaunchInterpreter(object):
 
     def _param_tag(self, tag, scope, condition):
         assert not tag.children
-        name = _require(tag, 'name')
-        name = _resolve_opt_value(name, scope)
-        ptype = _resolve_opt(tag, scope, 'type')
-        if 'value' in tag.attributes:
-            value = _resolve_opt_value(tag.value, scope)
-        elif 'textfile' in tag.attributes:
-            value = tag.textfile
-            if not value.startswith('$(find '):
-                self._fail(tag, scope, 'unsafe file access: ' + value)
-            value = _resolve_opt_value(value, scope)
-            if value is not None:
-                value = self.system.read_text_file(value)
-                # `None` if unable
-        elif 'binfile' in tag.attributes:
-            value = tag.binfile
-            if not value.startswith('$(find '):
-                self._fail(tag, scope, 'unsafe file access: ' + value)
-            value = _resolve_opt_value(value, scope)
-            if value is not None:
-                value = self.system.read_binary_file(value)
-                # `None` if unable
-        elif 'command' in tag.attributes:
-            value = _resolve_opt_value(tag.command, scope)
-            if value is not None:
-                value = self.system.execute_command(value)
-                # `None` if unable
+        name = tag.resolve_name(scope).as_string()
+        param_type = _literal(tag.resolve_type(scope))
+        value = None
+        if tag.is_value_param:
+            result = tag.resolve_value(scope)
+        elif tag.is_textfile_param:
+            result = tag.resolve_textfile(scope)
+            # system check - if tag.textfile_attr.startswith('$(find ')
+            if result.is_resolved:
+                data = self.system.try_read_text_file(result.value)
+                if data is not None:
+                    result = new_literal_result(data, TYPE_STRING)
+        elif tag.is_binfile_param:
+            result = tag.resolve_binfile(scope)
+            # system check - if tag.binfile_attr.startswith('$(find ')
+            if result.is_resolved:
+                data = self.system.try_read_binary_file(result.value)
+                if data is not None:
+                    result = new_literal_result(data, TYPE_STRING)
         else:
-            raise SanityError.miss_attr(tag, 'value')
-        if value is not None:
-            value = convert_value(value, param_type=ptype)
+            assert tag.is_command_param
+            result = tag.resolve_command(scope)
+            if result.is_resolved:
+                output = self.system.try_execute_command(result.value)
+                if output is not None:
+                    result = new_literal_result(output, TYPE_STRING)
+        if result.is_resolved:
+            value = convert_value(result.value, param_type=param_type) #!
         location = _launch_location(scope.filepath, tag)
-        scope.set_param(name, value, ptype, condition, location)
+        unknown = result.unknown
+        scope.set_param(name, value, param_type, condition, location, unknown)
 
     def _rosparam_tag(self, tag, scope, condition):
         assert not tag.children
