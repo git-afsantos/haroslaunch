@@ -359,11 +359,8 @@ class LaunchInterpreter(object):
             return
         if condition is not True:
             raise SanityError.conditional_tag(tag, condition.unknown)
-        name = _resolve_strict(tag, scope, 'name')
-        if not name:
-            raise SanityError.no_empty(tag, 'name')
-        value = _require(tag, 'value')
-        value = _resolve_opt_value(value, scope)
+        name = _literal(tag.resolve_name(scope)) #!
+        value = tag.resolve_value(scope).as_string() # allow wildcards
         scope.set_env(name, value)
 
     def _machine_tag(self, tag, scope, condition):

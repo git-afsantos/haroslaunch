@@ -683,7 +683,7 @@ class EnvTag(BaseLaunchTag):
         return self.attributes['value']
 
     def resolve_name(self, scope):
-        return self._resolve_req_attr('name', scope)
+        return self._resolve_req_attr('name', scope, no_empty=True)
 
     def resolve_value(self, scope):
         return self._resolve_req_attr('value', scope)
