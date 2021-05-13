@@ -658,7 +658,11 @@ class GroupTag(BaseLaunchTag):
         return self._resolve_attr('ns', scope)
 
     def resolve_clear_params(self, scope):
-        return self._resolve_attr('clear_params', scope, default='false')
+        result = self._resolve_attr('clear_params', scope, default='false')
+        if result.is_resolved and result.value:
+            if self.ns_attr is None:
+                raise SchemaError.missing_attr('ns')
+        return result
 
 
 class EnvTag(BaseLaunchTag):

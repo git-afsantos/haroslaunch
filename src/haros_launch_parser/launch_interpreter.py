@@ -341,16 +341,13 @@ class LaunchInterpreter(object):
         pass
 
     def _group_tag(self, tag, scope, condition):
-        clear = _resolve_opt(tag, scope, 'clear_params',
-                             default='false', unknown=False)
-        clear = convert_to_bool(clear)
+        clear = _literal(tag.resolve_clear_params(scope))
         if clear:
-            ns = _resolve_strict(tag, scope, 'ns')
+            ns = _literal(tag.resolve_ns(scope))
         else:
-            # ns may be None if unable to resolve
-            ns = _resolve_opt(tag, scope, 'ns', default=scope.ns)
+            ns = _literal_or_None(tag.resolve_ns(scope))
         # TODO warn if global ns
-        new_scope = scope.new_group(ns, clear, condition)
+        new_scope = scope.new_group(ns, clear, condition) # default=scope.ns
         self._interpret_tree(tag, new_scope)
 
     def _env_tag(self, tag, scope, condition):
