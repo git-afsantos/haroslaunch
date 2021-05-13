@@ -13,10 +13,13 @@ from .launch_scope import (
 )
 from .launch_xml_parser import SchemaError
 from .sub_parser import (
-    TYPE_STRING,
-    convert_to_bool, convert_value, new_literal_result,
-    SubstitutionError, UnresolvedValue
+    TYPE_STRING, TYPE_YAML,
+    convert_to_bool, convert_to_yaml, convert_value, new_literal_result,
+    resolve_to_yaml,
+    SubstitutionError, SubstitutionParser
 )
+
+if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -91,6 +94,11 @@ def _literal_or_None(substitution_result):
         return None
     return substitution_result.value
 
+def _string_or_None(substitution_result):
+    if substitution_result is None:
+        return None
+    return substitution_result.as_string()
+
 def _require(tag, attr):
     value = tag.attributes.get(attr)
     if value is None:
@@ -118,7 +126,7 @@ def _resolve_strict(tag, scope, attr):
     original = tag.attributes.get(attr)
     if original is None:
         raise SanityError.miss_attr(tag, attr)
-    unresolved = UnresolvedValue.of_string(original)
+    unresolved = SubstitutionParser.of_string(original)
     value = unresolved.resolve(scope)
     if value is None:
         raise SanityError.need_value(tag, attr, unresolved.unknown)
@@ -131,7 +139,7 @@ def _resolve_opt(tag, scope, attr, default=None, unknown=True):
     original = tag.attributes.get(attr)
         if original is None:
             return default
-    unresolved = UnresolvedValue.of_string(original)
+    unresolved = SubstitutionParser.of_string(original)
     value = unresolved.resolve(scope)
     #if no_empty and value == '':
     #    raise SanityError.no_empty(tag, attr)
@@ -140,7 +148,7 @@ def _resolve_opt(tag, scope, attr, default=None, unknown=True):
     return value
 
 def _resolve_opt_value(original_value, scope):
-    unresolved = UnresolvedValue.of_string(original_value)
+    unresolved = SubstitutionParser.of_string(original_value)
     value = unresolved.resolve(scope)
     if value is None:
         pass # TODO log unknown
@@ -238,6 +246,7 @@ class LaunchInterpreter(object):
                     self._fail(tag, scope, 'unknown tag: ' + str(tag))
             except SanityError as err:
                 self._fail(tag, scope, err)
+        # TODO at the end of the scope register new parameters
 
     def _arg_tag(self, tag, scope, condition):
         assert not tag.children
@@ -307,35 +316,61 @@ class LaunchInterpreter(object):
 
     def _rosparam_tag(self, tag, scope, condition):
         assert not tag.children
-        command = _resolve_opt(tag, scope, 'command',
-                               default='load', unknown=False)
-        ns = _resolve_opt(tag, scope, 'ns', default=scope.ns)
+        command = _literal(tag.resolve_command(scope)) #!
         if command == 'load':
-            filepath = _resolve_opt(tag, scope, 'file')
+            self._rosparam_load(tag, scope, condition)
         elif command == 'delete':
-            if 'file' in tag.attributes:
-                raise SanityError.invalid_attr(tag, 'file')
-        elif command == 'dump':
+            self._rosparam_delete(tag, scope condition)
         else:
-            raise SanityError.invalid_value(tag, 'command', value)
-        # https://github.com/ros/ros_comm/blob/f5fa3a168760d62e9693f10dcb9adfffc6132d22/tools/roslaunch/src/roslaunch/loader.py#L371
-        name = sub.resolve(tag.name, strict = True)
-        if command == "load":
-            if filepath:
-                try:
-                    with open(filepath) as f:
-                        value = f.read()
-                except IOError as e:
-                    raise ConfigurationError("cannot read file: " + filepath)
+            assert command == 'dump'
+            self._rosparam_dump(tag, scope, condition)
+
+    def _rosparam_load(self, tag, scope, condition):
+        value = reason = None
+        filepath = tag.resolve_file(scope)
+        if filepath is None: # not defined in XML
+            value = tag.text
+        elif filepath.is_resolved:
+            try:
+                value = self.system.read_text_file(filepath.value)
+            except EnvironmentError as err:
+                reason = err
+        else:
+            reason = SanityError.cannot_resolve(filepath.unknown)
+        if value is not None:
+            assert isinstance(value, basestring)
+            assert reason is None
+            subst_value = _literal(tag.resolve_subst_value(scope)) #!
+            if subst_value:
+                value = resolve_to_yaml(value, scope) #!
+                if value.is_resolved:
+                    value = value.value if value.value is not None else {}
+                else:
+                    reason = SanityError.cannot_resolve(value.unknown)
+                    value = None
             else:
-                value = tag.text
-                if sub.resolve(tag.substitute, strict = True):
-                    value = sub.sub(value)
-                    value = sub.resolve(value, strict = True)
-            scope.make_rosparam(name, ns, value, condition,
-                                line=tag.line, col=tag.column)
-        elif command == "delete":
-            scope.remove_param(name, ns, condition)
+                value = convert_to_yaml(value) #!
+                value = value if value is not None else {}
+        ns = _string_or_None(tag.resolve_ns(scope))
+        param = _string_or_None(tag.resolve_param(scope))
+        if value is None:
+            assert reason is not None
+        else:
+            if not param and type(value) != dict:
+                raise SchemaError.missing_attr('param')
+        scope.set_param()
+
+        # scope.make_rosparam(name, ns, value, condition, line=tag.line, col=tag.column)
+
+    def _rosparam_delete(self, tag, scope, condition):
+        ns = _string_or_None(tag.resolve_ns(scope))
+
+        # if 'file' in tag.attributes:
+        #    raise SanityError.invalid_attr(tag, 'file')
+        # scope.remove_param(name, ns, condition)
+
+    def _rosparam_dump(self, tag, scope, condition):
+        ns = _string_or_None(tag.resolve_ns(scope))
 
     def _include_tag(self, tag, scope, condition):
         pass

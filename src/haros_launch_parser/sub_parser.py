@@ -325,17 +325,17 @@ def new_unknown_result(parts, param_type):
 
 # Usage:
 #   value = '$(find robot_pkg)/$(arg robot_name)'
-#   value = UnresolvedValue(value, param_type='string')
+#   value = SubstitutionParser(value, param_type='string')
 #   result = value.resolve(scope)
 #   if not result.is_resolved:
-#       print('Could not resolve ' + repr(value.original))
+#       print('Could not resolve ' + repr(value.text))
 #       for x in result.unknown:
 #           print('The value of {} is unknown.'.format(x.text))
 #   else:
 #       print('Resolved to the string ' + repr(result.value))
-class UnresolvedValue(object):
-    __slots__ = ('original', 'param_type', '_commands')
-    # `original`: original string to parse and resolve
+class SubstitutionParser(object):
+    __slots__ = ('text', 'param_type', '_commands')
+    # `text`: original string to parse and resolve
     # `param_type`: expected conversion type (str) or None
     # `_commands`: internal list of commands for value resolution
 
@@ -345,7 +345,7 @@ class UnresolvedValue(object):
     def __init__(self, value, param_type=None):
         if not isinstance(value, basestring):
             raise TypeError('expected a string: {!r}'.format(value))
-        self.original = value
+        self.text = value
         self.param_type = param_type
         self._build_command_list(value)
 
@@ -377,7 +377,7 @@ class UnresolvedValue(object):
         unknown = False
         for cmd in self._commands:
             try:
-                value = cmd.resolve(scope)
+                value = cmd.resolve(scope) #!
                 assert isinstance(value, basestring)
                 parts.append(value)
             except UnknownValueError as e:
@@ -386,7 +386,7 @@ class UnresolvedValue(object):
         if unknown:
             return new_unknown_result(parts, self.param_type)
         value = ''.join(parts)
-        value = convert_value(value, param_type=self.param_type)
+        value = convert_value(value, param_type=self.param_type) #!
         return new_literal_result(value, self.param_type)
 
     def _build_command_list(self, value):
@@ -430,18 +430,18 @@ class UnresolvedValue(object):
 
     def __repr__(self):
         return '{}({!r}, param_type={!r})'.format(type(self).__name__,
-            self.original, self.param_type)
+            self.text, self.param_type)
 
     def __str__(self):
-        return self.original
+        return self.text
 
     def __eq__(self, other):
-        if not isinstance(other, UnresolvedValue):
+        if not isinstance(other, SubstitutionParser):
             return False
-        return self.original == other.original
+        return self.text == other.text
 
     def __hash__(self):
-        return hash(self.original)
+        return hash(self.text)
 
 
 # as seen in roslaunch code, sans a few details
@@ -497,3 +497,8 @@ def convert_to_double(value):
 
 def convert_to_yaml(value):
     return convert_value(value, param_type=TYPE_YAML)
+
+
+def resolve_to_yaml(text, scope):
+    unresolved = SubstitutionParser.of_yaml(text) #!
+    return unresolved.resolve(scope) #!

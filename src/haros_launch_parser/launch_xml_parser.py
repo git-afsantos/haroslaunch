@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 
 from .sub_parser import (
     TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STRING, TYPE_YAML, TYPE_AUTO,
-    UnresolvedValue
+    SubstitutionParser
 )
 
 ###############################################################################
@@ -144,7 +144,7 @@ class BaseLaunchTag(object):
         if xml_value is None:
             return None
         param_type = self.ATTRIBUTES[attr]
-        unresolved = UnresolvedValue(xml_value, param_type=param_type)
+        unresolved = SubstitutionParser(xml_value, param_type=param_type)
         result = unresolved.resolve(scope)
         if result.is_resolved:
             value = result.value
@@ -552,7 +552,7 @@ class ParamTag(BaseLaunchTag):
             raise SchemaError.missing_attr('value')
 
 
-class RosParamTag(BaseLaunchTag):
+class RosparamTag(BaseLaunchTag):
     ATTRIBUTES = {
         'if': TYPE_BOOL,
         'unless': TYPE_BOOL,
@@ -617,6 +617,11 @@ class RosParamTag(BaseLaunchTag):
 
     def resolve_subst_value(self, scope):
         return self._resolve_attr('subst_value', scope, default='false')
+
+    def resolve_yaml_text(self, scope):
+        # returns `SubstitutionResult`
+        unresolved = SubstitutionParser(self.text, param_type=TYPE_YAML)
+        return unresolved.resolve(scope)
 
     def _check_tag_schema(self):
         if self.command_attr == 'load':
@@ -906,7 +911,7 @@ TAGS = {
     'include': IncludeTag,
     'remap': RemapTag,
     'param': ParamTag,
-    'rosparam': RosParamTag,
+    'rosparam': RosparamTag,
     'group': GroupTag,
     'arg': ArgTag,
     'env': EnvTag,
