@@ -75,6 +75,10 @@ class SanityError(Exception):
         return cls(cls._INVALID_ATTR.format(attr=attr, tag=tag))
 
 
+def _empty_value(attr):
+    return ValueError('{!r} must not be empty'.format(attr))
+
+
 ###############################################################################
 # Helper Functions
 ###############################################################################
@@ -277,7 +281,28 @@ class LaunchInterpreter(object):
             scope.set_arg(name, value)
 
     def _node_tag(self, tag, scope, condition):
-        pass
+        name = tag.resolve_name(scope).as_string()
+        # RosName.check_valid_name(name, ns=False, wildcards=True)
+        clear = _literal(tag.resolve_clear_params(scope)) #!
+        if clear and not name:
+            raise _empty_value('name')
+        ns = _string_or_None(tag.resolve_ns(scope))
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exec = _literal(tag.resolve_type(scope)) #!
+        machine = _string_or_None(tag.resolve_machine(scope))
+        required = _literal(tag.resolve_required(scope)) #!
+        respawn = _literal(tag.resolve_respawn(scope)) #!
+        if respawn and required:
+            raise SchemaError.incompatible('required', 'respawn')
+        delay = _literal_or_None(tag.resolve_respawn_delay(scope))
+        args = _literal_or_None(tag.resolve_args(scope))
+        output = _literal_or_None(tag.resolve_output(scope))
+        cwd = _literal_or_None(tag.resolve_cwd(scope))
+        prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
+        new_scope = scope.new_node(name, pkg, exec, ns=ns, machine=machine,
+            required=required, respawn=respawn, respawn_delay=delay, args=args,
+            prefix=prefix, output=output, cwd=cwd)
+        self._interpret_tree(tag, new_scope)
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children

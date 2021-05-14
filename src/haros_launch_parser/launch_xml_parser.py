@@ -265,7 +265,7 @@ class ArgTag(BaseLaunchTag):
 
 class NodeTag(BaseLaunchTag):
     CHILDREN = ('remap', 'param', 'rosparam', 'env')
-    REQUIRED = ('pkg', 'type')
+    REQUIRED = ('name', 'pkg', 'type')
     ATTRIBUTES = {
         'if': TYPE_BOOL,
         'unless': TYPE_BOOL,
@@ -302,7 +302,7 @@ class NodeTag(BaseLaunchTag):
 
     @property
     def name_attr(self):
-        return self.attributes.get('name')
+        return self.attributes['name']
 
     @property
     def args_attr(self):
@@ -351,7 +351,7 @@ class NodeTag(BaseLaunchTag):
         return self._resolve_req_attr('type', scope, no_empty=True)
 
     def resolve_name(self, scope):
-        return self._resolve_attr('name', scope)
+        return self._resolve_req_attr('name', scope)
 
     def resolve_args(self, scope):
         return self._resolve_attr('args', scope)
@@ -373,8 +373,11 @@ class NodeTag(BaseLaunchTag):
 
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
-        if result.value is True and self.ns_attr is None:
-            raise SchemaError.missing_attr('ns')
+        if result.value is True:
+            if self.ns_attr is None:
+                raise SchemaError.missing_attr('ns')
+            if self.name_attr == '':
+                raise _empty_value('name')
         return result
 
     def resolve_output(self, scope):
@@ -771,8 +774,11 @@ class MachineTag(BaseLaunchTag):
         return self._resolve_attr('password', scope)
 
     def resolve_timeout(self, scope):
-        return self._resolve_attr('timeout', scope, default='10.0',
-                                  no_empty=True)
+        result = self._resolve_attr('timeout', scope, default='10.0',
+                                    no_empty=True)
+        if result.is_resolved and result.value <= 0.0:
+            raise _invalid_value('timeout', result.value)
+        return result
 
 
 class TestTag(BaseLaunchTag):

@@ -185,6 +185,11 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
+    def new_node(self, name, pkg, exec, ns=None, machine=None, required=False,
+                 respawn=False, respawn_delay=None, args=None, prefix=None,
+                 output=None, cwd=None):
+        return new
+
     def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
                     pw=None, default=False, timeout=None):
         pass # TODO
