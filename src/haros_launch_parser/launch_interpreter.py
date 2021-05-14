@@ -152,19 +152,9 @@ class LaunchInterpreter(object):
         for tag in tree.children:
             try:
                 tag.check_schema()
-            except SchemaError as err:
-                self._fail(tag, scope, err)
-            try:
                 condition = _resolve_condition(tag, scope)
-            except SubstitutionError:
-                continue # TODO
-            except ValueError:
-                continue # TODO
-            except ArgError:
-                continue # TODO
-            if condition is False and not self.include_absent:
-                continue
-            try:
+                if condition is False and not self.include_absent:
+                    continue
                 if tag.tag == 'arg':
                     self._arg_tag(tag, scope, condition)
                 elif tag.tag == 'node':
@@ -187,9 +177,10 @@ class LaunchInterpreter(object):
                     self._test_tag(tag, scope, condition)
                 else:
                     self._fail(tag, scope, 'unknown tag: ' + str(tag))
-            except SanityError as err:
+            except (SchemaError, SubstitutionError,
+                    ValueError, ArgError, SanityError) as err:
                 self._fail(tag, scope, err)
-        # TODO at the end of the scope register new parameters
+        self._make_params(scope)
 
     def _arg_tag(self, tag, scope, condition):
         assert not tag.children
@@ -445,6 +436,9 @@ class LaunchInterpreter(object):
             pass
         cmd = _RosparamDelete(ns, name)
         self.rosparam_cmds.append(cmd)
+
+    def _make_params(self, scope):
+        pass # TODO
 
     def _fail(self, tag, scope, err):
         msg = str(err) or type(err).__name__
