@@ -220,12 +220,13 @@ class LaunchInterpreter(object):
         output = _literal_or_None(tag.resolve_output(scope))
         cwd = _literal_or_None(tag.resolve_cwd(scope))
         prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
-        new_scope = scope.new_node(name, pkg, exec, ns=ns, machine=machine,
-            required=required, respawn=respawn, respawn_delay=delay, args=args,
-            prefix=prefix, output=output, cwd=cwd)
+        new_scope = scope.new_node(name, ns)
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
+        self._make_node(new_scope, pkg, exec, machine=machine, args=args,
+            required=required, respawn=respawn, respawn_delay=delay,
+            prefix=prefix, output=output, cwd=cwd)
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children
@@ -417,11 +418,12 @@ class LaunchInterpreter(object):
         prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
         retry = _literal_or_None(tag.resolve_retry(scope))
         time_limit = _literal_or_None(tag.resolve_time_limit(scope))
-        new_scope = scope.new_test(name, pkg, exec, ns=ns, args=args,
-            prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
+        new_scope = scope.new_node(name, ns)
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
+        self._make_test(new_scope, test_name, pkg, exec, args=args,
+            prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
 
     def _clear_params(self, rosname):
         if not ns:
@@ -436,6 +438,19 @@ class LaunchInterpreter(object):
             pass
         cmd = _RosparamDelete(ns, name)
         self.rosparam_cmds.append(cmd)
+
+    def _make_node(self, scope, pkg, exec, machine=None, required=False,
+                   respawn=False, respawn_delay=None, args=None, prefix=None,
+                   output=None, cwd=None):
+        node = None
+        self.nodes.append(node)
+
+    def _make_test(self, scope, test_name, pkg, exec, args=None,
+                   prefix=None, cwd=None, retry=None, time_limit=None):
+        retry = retry or 0
+        time_limit = time_limit or 60
+        test = None
+        self.nodes.append(test)
 
     def _make_params(self, scope):
         pass # TODO

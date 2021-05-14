@@ -185,15 +185,7 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
-    def new_node(self, name, pkg, exec, ns=None, machine=None, required=False,
-                 respawn=False, respawn_delay=None, args=None, prefix=None,
-                 output=None, cwd=None):
-        return new
-
-    def new_test(self, name, pkg, exec, ns=None, args=None, prefix=None,
-                 cwd=None, retry=None, time_limit=None):
-        retry = retry or 0
-        time_limit = time_limit or 60
+    def new_node(self, name, ns):
         return new
 
     def new_include(self, filepath, pass_all_args, ns=None):
