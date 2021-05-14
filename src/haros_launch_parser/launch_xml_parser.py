@@ -705,6 +705,7 @@ class MachineTag(BaseLaunchTag):
         'unless': TYPE_BOOL,
         'name': TYPE_STRING,
         'address': TYPE_STRING,
+        'ssh-port': TYPE_INT,
         'env-loader': TYPE_STRING,
         'default': TYPE_BOOL,
         'user': TYPE_STRING,
@@ -723,6 +724,10 @@ class MachineTag(BaseLaunchTag):
     @property
     def address_attr(self):
         return self.attributes['address']
+
+    @property
+    def shh_port_attr(self):
+        return self.attributes.get('ssh-port', '22')
 
     @property
     def env_loader_attr(self):
@@ -750,6 +755,9 @@ class MachineTag(BaseLaunchTag):
     def resolve_address(self, scope):
         return self._resolve_req_attr('address', scope)
 
+    def resolve_ssh_port(self, scope):
+        return self._resolve_attr('ssh-port', scope, default='22')
+
     def resolve_env_loader(self, scope):
         return self._resolve_attr('env-loader', scope)
 
@@ -763,7 +771,8 @@ class MachineTag(BaseLaunchTag):
         return self._resolve_attr('password', scope)
 
     def resolve_timeout(self, scope):
-        return self._resolve_attr('timeout', scope, default='10.0')
+        return self._resolve_attr('timeout', scope, default='10.0',
+                                  no_empty=True)
 
 
 class TestTag(BaseLaunchTag):

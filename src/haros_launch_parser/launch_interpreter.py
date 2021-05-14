@@ -428,7 +428,17 @@ class LaunchInterpreter(object):
         scope.set_env(name, value)
 
     def _machine_tag(self, tag, scope, condition):
-        pass
+        assert not tag.children
+        name = _literal(tag.resolve_name(scope)) #!
+        address = _literal(tag.resolve_address(scope)) #!
+        env_loader = _string_or_None(tag.resolve_env_loader(scope))
+        ssh_port = _literal_or_None(tag.resolve_ssh_port(scope))
+        user = _string_or_None(tag.resolve_user(scope))
+        password = _literal_or_None(tag.resolve_password(scope))
+        is_default = _literal(tag.resolve_default(scope)) #!
+        timeout = _literal_or_None(tag.resolve_timeout(scope))
+        scope.add_machine(name, address, ssh_port, env_loader=env_loader,
+            user=user, pw=password, default=is_default, timeout=timeout)
 
     def _test_tag(self, tag, scope, condition):
         pass

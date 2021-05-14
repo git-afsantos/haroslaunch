@@ -185,6 +185,10 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
+    def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
+                    pw=None, default=False, timeout=None):
+        pass # TODO
+
 
 class LaunchScope(BaseScope):
     __slots__ = BaseScope.__slots__ + ('passed_args', '_filepath',)
