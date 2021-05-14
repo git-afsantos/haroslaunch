@@ -196,6 +196,12 @@ class BaseScope(object):
         time_limit = time_limit or 60
         return new
 
+    def new_include(self, filepath, pass_all_args, ns=None):
+        return new
+
+    def new_launch(self):
+        return new
+
     def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
                     pw=None, default=False, timeout=None):
         pass # TODO

@@ -374,8 +374,6 @@ class NodeTag(BaseLaunchTag):
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
         if result.value is True:
-            if self.ns_attr is None:
-                raise SchemaError.missing_attr('ns')
             if self.name_attr == '':
                 raise _empty_value('name')
         return result
@@ -429,7 +427,11 @@ class IncludeTag(BaseLaunchTag):
         return self._resolve_attr('ns', scope)
 
     def resolve_clear_params(self, scope):
-        return self._resolve_attr('clear_params', scope, default='false')
+        result = self._resolve_attr('clear_params', scope, default='false')
+        if result.is_resolved and result.value:
+            if self.ns_attr is None:
+                raise SchemaError.missing_attr('ns')
+        return result
 
     def resolve_pass_all_args(self, scope):
         return self._resolve_attr('pass_all_args', scope, default='false')
@@ -870,7 +872,11 @@ class TestTag(BaseLaunchTag):
         return self._resolve_attr('ns', scope)
 
     def resolve_clear_params(self, scope):
-        return self._resolve_attr('clear_params', scope, default='false')
+        result = self._resolve_attr('clear_params', scope, default='false')
+        if result.value is True:
+            if self.name_attr == '':
+                raise _empty_value('name')
+        return result
 
     def resolve_cwd(self, scope):
         return self._resolve_attr('cwd', scope, default='ROS_HOME')

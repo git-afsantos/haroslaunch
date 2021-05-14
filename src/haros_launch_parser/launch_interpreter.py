@@ -430,7 +430,17 @@ class LaunchInterpreter(object):
         self.rosparam_cmds.append(cmd)
 
     def _include_tag(self, tag, scope, condition):
-        pass
+        filepath = _literal(tag.resolve_file(scope)) #!
+        pass_all_args = _literal(tag.resolve_pass_all_args(scope)) #!
+        clear = _literal(tag.resolve_clear_params(scope)) #!
+        ns = _literal_or_None(tag.resolve_ns(scope))
+        new_scope = scope.new_include(filepath, pass_all_args, ns=ns)
+        self._interpret_tree(tag, new_scope)
+        new_scope = new_scope.new_launch()
+        tree = self.system.request_parse_tree(filepath)
+        assert tree.tag == 'launch'
+        tree.check_schema()
+        self._interpret_tree(tree, scope)
 
     def _group_tag(self, tag, scope, condition):
         clear = _literal(tag.resolve_clear_params(scope))
