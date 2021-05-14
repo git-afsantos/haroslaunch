@@ -7,6 +7,8 @@
 # Imports
 ###############################################################################
 
+from collections import namedtuple
+
 from .launch_scope import (
     new_if, new_unless,
     ArgError, LaunchScope, NodeScope, GroupScope
@@ -158,6 +160,13 @@ def _resolve_opt_value(original_value, scope):
 ###############################################################################
 # Launch Interpreter
 ###############################################################################
+
+_RosparamDelete = namedtuple('RosparamDelete', ('ns', 'param'))
+_RosparamDelete.cmd = 'delete'
+
+_RosparamDump = namedtuple('RosparamDump',
+    ('filepath', 'ns', 'param', 'condition'))
+_RosparamDump.cmd = 'dump'
 
 class LaunchInterpreter(object):
     def __init__(self, system, include_absent=False):
@@ -377,14 +386,23 @@ class LaunchInterpreter(object):
                         reason=reason, ns=ns)
 
     def _rosparam_delete(self, tag, scope, condition):
+        if condition is False:
+            return
+        if condition is not True:
+            raise SanityError.conditional_tag(tag, condition.unknown)
         ns = _string_or_None(tag.resolve_ns(scope))
-
-        # if 'file' in tag.attributes:
-        #    raise SanityError.invalid_attr(tag, 'file')
-        # scope.remove_param(name, ns, condition)
+        param = _string_or_None(tag.resolve_param(scope))
+        cmd = _RosparamDelete(ns, param)
+        self.rosparam_cmds.append(cmd)
 
     def _rosparam_dump(self, tag, scope, condition):
+        if condition is False:
+            return
         ns = _string_or_None(tag.resolve_ns(scope))
+        param = _string_or_None(tag.resolve_param(scope))
+        filepath = _literal(tag.resolve_file(scope)) #!
+        cmd = _RosparamDump(filepath, ns, param, condition)
+        self.rosparam_cmds.append(cmd)
 
     def _include_tag(self, tag, scope, condition):
         pass
