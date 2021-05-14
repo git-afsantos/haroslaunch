@@ -163,7 +163,8 @@ class BaseScope(object):
         target = RosName.resolve(to_name, self.ns, private_ns=self.private_ns)
         self.remaps[source] = target
 
-    def set_param(self, name, value, ptype, condition, location):
+    def set_param(self, name, value, param_type, condition, location,
+                  reason=None, ns=None):
         # check if forward param
         pass # FIXME
 

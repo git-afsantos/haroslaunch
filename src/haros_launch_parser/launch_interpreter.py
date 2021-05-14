@@ -283,36 +283,51 @@ class LaunchInterpreter(object):
     def _param_tag(self, tag, scope, condition):
         assert not tag.children
         name = tag.resolve_name(scope).as_string()
-        param_type = _literal(tag.resolve_type(scope))
-        value = None
+        param_type = _literal(tag.resolve_type(scope)) #!
+        value = reason = None
         if tag.is_value_param:
             result = tag.resolve_value(scope)
+            if result.is_resolved:
+                value = result.value
+            else:
+                reason = SanityError.cannot_resolve(result.unknown)
         elif tag.is_textfile_param:
             result = tag.resolve_textfile(scope)
-            # system check - if tag.textfile_attr.startswith('$(find ')
             if result.is_resolved:
-                data = self.system.try_read_text_file(result.value)
-                if data is not None:
-                    result = new_literal_result(data, TYPE_STRING)
+                try:
+                    # system check - if tag.textfile_attr.startswith('$(find ')
+                    value = self.system.read_text_file(result.value)
+                except EnvironmentError as err:
+                    reason = err
+            else:
+                reason = SanityError.cannot_resolve(result.unknown)
         elif tag.is_binfile_param:
             result = tag.resolve_binfile(scope)
-            # system check - if tag.binfile_attr.startswith('$(find ')
             if result.is_resolved:
-                data = self.system.try_read_binary_file(result.value)
-                if data is not None:
-                    result = new_literal_result(data, TYPE_STRING)
+                try:
+                    # system check - if tag.binfile_attr.startswith('$(find ')
+                    value = self.system.read_binary_file(result.value)
+                except EnvironmentError as err:
+                    reason = err
+            else:
+                reason = SanityError.cannot_resolve(result.unknown)
         else:
             assert tag.is_command_param
             result = tag.resolve_command(scope)
             if result.is_resolved:
-                output = self.system.try_execute_command(result.value)
-                if output is not None:
-                    result = new_literal_result(output, TYPE_STRING)
-        if result.is_resolved:
-            value = convert_value(result.value, param_type=param_type) #!
+                try:
+                    value = self.system.execute_command(result.value)
+                except EnvironmentError as err:
+                    reason = err
+            else:
+                reason = SanityError.cannot_resolve(result.unknown)
+        assert value is None or isinstance(value, basestring)
+        assert (reason is None) is (value is not None)
+        if value is not None:
+            value = convert_value(value, param_type=param_type) #!
         location = _launch_location(scope.filepath, tag)
-        unknown = result.unknown
-        scope.set_param(name, value, param_type, condition, location, unknown)
+        scope.set_param(name, value, param_type, condition, location,
+                        reason=reason)
 
     def _rosparam_tag(self, tag, scope, condition):
         assert not tag.children
@@ -355,12 +370,11 @@ class LaunchInterpreter(object):
         param = _string_or_None(tag.resolve_param(scope))
         if value is None:
             assert reason is not None
-        else:
-            if not param and type(value) != dict:
-                raise SchemaError.missing_attr('param')
-        scope.set_param()
-
-        # scope.make_rosparam(name, ns, value, condition, line=tag.line, col=tag.column)
+        elif not param and type(value) != dict:
+            raise SchemaError.missing_attr('param')
+        scope.set_param(param, value, param_type, condition,
+                        _launch_location(scope.filepath, tag),
+                        reason=reason, ns=ns)
 
     def _rosparam_delete(self, tag, scope, condition):
         ns = _string_or_None(tag.resolve_ns(scope))
