@@ -466,7 +466,23 @@ class LaunchInterpreter(object):
             user=user, pw=password, default=is_default, timeout=timeout)
 
     def _test_tag(self, tag, scope, condition):
-        pass
+        test_name = tag.resolve_test_name(scope).as_string()
+        name = tag.resolve_name(scope).as_string()
+        # RosName.check_valid_name(name, ns=False, wildcards=True)
+        clear = _literal(tag.resolve_clear_params(scope)) #!
+        if clear and not name:
+            raise _empty_value('name')
+        ns = _string_or_None(tag.resolve_ns(scope))
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exec = _literal(tag.resolve_type(scope)) #!
+        args = _literal_or_None(tag.resolve_args(scope))
+        cwd = _literal_or_None(tag.resolve_cwd(scope))
+        prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
+        retry = _literal_or_None(tag.resolve_retry(scope))
+        time_limit = _literal_or_None(tag.resolve_time_limit(scope))
+        new_scope = scope.new_test(name, pkg, exec, ns=ns, args=args,
+            prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
+        self._interpret_tree(tag, new_scope)
 
     def _fail(self, tag, scope, err):
         msg = str(err) or type(err).__name__

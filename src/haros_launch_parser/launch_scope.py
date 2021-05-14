@@ -190,6 +190,12 @@ class BaseScope(object):
                  output=None, cwd=None):
         return new
 
+    def new_test(self, name, pkg, exec, ns=None, args=None, prefix=None,
+                 cwd=None, retry=None, time_limit=None):
+        retry = retry or 0
+        time_limit = time_limit or 60
+        return new
+
     def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
                     pw=None, default=False, timeout=None):
         pass # TODO
