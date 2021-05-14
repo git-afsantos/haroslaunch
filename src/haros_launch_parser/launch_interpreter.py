@@ -342,14 +342,14 @@ class LaunchInterpreter(object):
         assert not tag.children
         command = _literal(tag.resolve_command(scope)) #!
         if command == 'load':
-            self._rosparam_load(tag, scope, condition)
+            self._rosparam_tag_load(tag, scope, condition)
         elif command == 'delete':
-            self._rosparam_delete(tag, scope condition)
+            self._rosparam_tag_delete(tag, scope condition)
         else:
             assert command == 'dump'
-            self._rosparam_dump(tag, scope, condition)
+            self._rosparam_tag_dump(tag, scope, condition)
 
-    def _rosparam_load(self, tag, scope, condition):
+    def _rosparam_tag_load(self, tag, scope, condition):
         value = reason = None
         filepath = tag.resolve_file(scope)
         if filepath is None: # not defined in XML
@@ -385,7 +385,7 @@ class LaunchInterpreter(object):
                         _launch_location(scope.filepath, tag),
                         reason=reason, ns=ns)
 
-    def _rosparam_delete(self, tag, scope, condition):
+    def _rosparam_tag_delete(self, tag, scope, condition):
         if condition is False:
             return
         if condition is not True:
@@ -395,7 +395,7 @@ class LaunchInterpreter(object):
         cmd = _RosparamDelete(ns, param)
         self.rosparam_cmds.append(cmd)
 
-    def _rosparam_dump(self, tag, scope, condition):
+    def _rosparam_tag_dump(self, tag, scope, condition):
         if condition is False:
             return
         ns = _string_or_None(tag.resolve_ns(scope))
