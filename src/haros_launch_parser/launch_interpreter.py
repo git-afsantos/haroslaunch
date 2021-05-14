@@ -31,48 +31,16 @@ class LaunchInterpreterError(Exception):
     pass
 
 class SanityError(Exception):
-    _UNK_TAG = 'unknown tag: {}'
-    @classmethod
-    def unknown_tag(cls, tag):
-        return cls(cls._UNK_TAG.format(tag))
-
-    _INVALID = '{val!r} is not a valid {attr!r} in tag: {tag}'
-    @classmethod
-    def invalid_value(cls, tag, attr, value):
-        return cls(cls._INVALID.format(tag=tag, attr=attr, val=value))
-
     @classmethod
     def conditional_tag(cls, tag, unknown):
-        attr = tag.conditional_statement
-        assert attr is not None
-        return cls.need_value(tag, attr, unknown)
-
-    _NEED_VALUE = ('cannot resolve {attr!r} in {tag}: '
-                   'unknown values for {unk}')
-    @classmethod
-    def need_value(cls, tag, attr, unknown):
-        unknown = ', '.join(unk.text for unk in unknown)
-        return cls(cls._NEED_VALUE.format(attr=attr, tag=tag, unk=unknown))
+        what = ', '.join(x.text for x in unknown)
+        msg = 'unable to resolve conditional <{}>: unknown {}'
+        return cls(msg.format(tag.tag, what))
 
     @classmethod
     def cannot_resolve(cls, unknown):
         what = ', '.join(x.text for x in unknown)
         return cls('unable to resolve ' + what)
-
-    _NO_EMPTY = '{attr!r} cannot be empty in {tag}'
-    @classmethod
-    def no_empty(cls, tag, attr):
-        return cls(cls._NO_EMPTY.format(attr=attr, tag=tag))
-
-    _MISS_ATTR = '{attr!r} is missing in {tag}'
-    @classmethod
-    def miss_attr(cls, tag, attr):
-        return cls(cls._MISS_ATTR.format(attr=attr, tag=tag))
-
-    _INVALID_ATTR = '{attr!r} is not a valid attribute in {tag}'
-    @classmethod
-    def invalid_attr(cls, tag, attr):
-        return cls(cls._INVALID_ATTR.format(attr=attr, tag=tag))
 
 
 def _empty_value(attr):
@@ -105,12 +73,6 @@ def _string_or_None(substitution_result):
         return None
     return substitution_result.as_string()
 
-def _require(tag, attr):
-    value = tag.attributes.get(attr)
-    if value is None:
-        raise SanityError.miss_attr(tag, attr)
-    return value
-
 def _resolve_condition(tag, scope):
     # `tag` is a Tag object from .launch_xml_parser
     # `scope` is a Scope object from .launch_scope
@@ -127,38 +89,6 @@ def _resolve_condition(tag, scope):
         return t.value
     loc = _launch_location(scope.filepath, tag)
     return new_if(tag.if_attr, t.unknown, location=loc)
-
-def _resolve_strict(tag, scope, attr):
-    original = tag.attributes.get(attr)
-    if original is None:
-        raise SanityError.miss_attr(tag, attr)
-    unresolved = SubstitutionParser.of_string(original)
-    value = unresolved.resolve(scope)
-    if value is None:
-        raise SanityError.need_value(tag, attr, unresolved.unknown)
-    #if value == '':
-    #    raise SanityError.no_empty(tag, attr)
-    return value
-
-#def _resolve_opt(tag, scope, attr, default=None, no_empty=False):
-def _resolve_opt(tag, scope, attr, default=None, unknown=True):
-    original = tag.attributes.get(attr)
-        if original is None:
-            return default
-    unresolved = SubstitutionParser.of_string(original)
-    value = unresolved.resolve(scope)
-    #if no_empty and value == '':
-    #    raise SanityError.no_empty(tag, attr)
-    if value is None and not unknown:
-        raise SanityError.need_value(tag, attr, unresolved.unknown)
-    return value
-
-def _resolve_opt_value(original_value, scope):
-    unresolved = SubstitutionParser.of_string(original_value)
-    value = unresolved.resolve(scope)
-    if value is None:
-        pass # TODO log unknown
-    return value
 
 
 ###############################################################################
@@ -284,9 +214,9 @@ class LaunchInterpreter(object):
         name = tag.resolve_name(scope).as_string()
         # RosName.check_valid_name(name, ns=False, wildcards=True)
         clear = _literal(tag.resolve_clear_params(scope)) #!
+        ns = _string_or_None(tag.resolve_ns(scope))
         if clear and not name:
             raise _empty_value('name')
-        ns = _string_or_None(tag.resolve_ns(scope))
         pkg = _literal(tag.resolve_pkg(scope)) #!
         exec = _literal(tag.resolve_type(scope)) #!
         machine = _string_or_None(tag.resolve_machine(scope))
@@ -302,6 +232,8 @@ class LaunchInterpreter(object):
         new_scope = scope.new_node(name, pkg, exec, ns=ns, machine=machine,
             required=required, respawn=respawn, respawn_delay=delay, args=args,
             prefix=prefix, output=output, cwd=cwd)
+        if clear:
+            self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
 
     def _remap_tag(self, tag, scope, condition):
@@ -435,6 +367,8 @@ class LaunchInterpreter(object):
         clear = _literal(tag.resolve_clear_params(scope)) #!
         ns = _literal_or_None(tag.resolve_ns(scope))
         new_scope = scope.new_include(filepath, pass_all_args, ns=ns)
+        if clear:
+            self._clear_params(new_scope.ns)
         self._interpret_tree(tag, new_scope)
         new_scope = new_scope.new_launch()
         tree = self.system.request_parse_tree(filepath)
@@ -449,7 +383,9 @@ class LaunchInterpreter(object):
         else:
             ns = _literal_or_None(tag.resolve_ns(scope))
         # TODO warn if global ns
-        new_scope = scope.new_group(ns, clear, condition) # default=scope.ns
+        new_scope = scope.new_group(ns, condition) # default=scope.ns
+        if clear:
+            self._clear_params(new_scope.ns)
         self._interpret_tree(tag, new_scope)
 
     def _env_tag(self, tag, scope, condition):
@@ -492,7 +428,23 @@ class LaunchInterpreter(object):
         time_limit = _literal_or_None(tag.resolve_time_limit(scope))
         new_scope = scope.new_test(name, pkg, exec, ns=ns, args=args,
             prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
+        if clear:
+            self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
+
+    def _clear_params(self, rosname):
+        if not ns:
+            ns = scope.ns
+        else:
+            pass
+        if name is None:
+            pass
+        elif name == '':
+            pass
+        else:
+            pass
+        cmd = _RosparamDelete(ns, name)
+        self.rosparam_cmds.append(cmd)
 
     def _fail(self, tag, scope, err):
         msg = str(err) or type(err).__name__

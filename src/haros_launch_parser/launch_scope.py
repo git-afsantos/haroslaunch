@@ -168,7 +168,7 @@ class BaseScope(object):
         # check if forward param
         pass # FIXME
 
-    def new_group(self, ns, clear_params, condition):
+    def new_group(self, ns, condition):
         parent = self
         system = self.system
         dirpath = self.dirpath
@@ -238,7 +238,7 @@ class NodeScope(BaseScope):
     def private_ns(self):
         return self.rosname
 
-    def new_group(self, ns, clear_params, condition):
+    def new_group(self, ns, condition):
         raise NotImplementedError()
 
 
