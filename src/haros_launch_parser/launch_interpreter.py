@@ -220,7 +220,7 @@ class LaunchInterpreter(object):
         output = _literal_or_None(tag.resolve_output(scope))
         cwd = _literal_or_None(tag.resolve_cwd(scope))
         prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
-        new_scope = scope.new_node(name, ns)
+        new_scope = scope.new_node(name, ns, condition)
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
@@ -418,7 +418,7 @@ class LaunchInterpreter(object):
         prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
         retry = _literal_or_None(tag.resolve_retry(scope))
         time_limit = _literal_or_None(tag.resolve_time_limit(scope))
-        new_scope = scope.new_node(name, ns)
+        new_scope = scope.new_node(name, ns, condition)
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)

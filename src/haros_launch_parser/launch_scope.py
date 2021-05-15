@@ -185,7 +185,7 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
-    def new_node(self, name, ns):
+    def new_node(self, name, ns, condition):
         return new
 
     def new_include(self, filepath, pass_all_args, ns=None):
