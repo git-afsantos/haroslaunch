@@ -349,7 +349,7 @@ class SubstitutionParser(object):
     def of_yaml(cls, value):
         return cls(value, param_type=TYPE_YAML)
 
-    # returns a SolverValue
+    # returns a SolverResult
     # `r.value` is converted to `self.param_type` if possible
     # throws SubstitutionError, ValueError
     def resolve(self, scope):

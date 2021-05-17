@@ -13,7 +13,7 @@ from .launch_scope import (
     ArgError, LaunchScope, NodeScope, GroupScope
 )
 from .launch_xml_parser import SchemaError
-from .metamodel import IfCondition, UnlessCondition
+from .metamodel import IfCondition, SourceLocation, UnlessCondition
 from .sub_parser import (
     TYPE_STRING, TYPE_YAML,
     convert_to_bool, convert_to_yaml, convert_value,
@@ -52,11 +52,7 @@ def _empty_value(attr):
 ###############################################################################
 
 def _launch_location(filepath, tag):
-    return {
-        'file': str(filepath),
-        'line': tag.line,
-        'column': tag.column
-    }
+    return SourceLocation(None, str(filepath), tag.line, tag.column)
 
 def _literal(substitution_result):
     if not substitution_result.is_resolved:

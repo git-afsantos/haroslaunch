@@ -41,36 +41,36 @@ UnknownValue = namedtuple('UnknownValue', (
 ))
 
 
-SolverValue = namedtuple('SolverValue', (
+SolverResult = namedtuple('SolverResult', (
     'value',        # literal value if resolved else [string|UnknownValue]
     'var_type',     # string
     'is_resolved',  # bool
     'unknown'       # [UnknownValue]
 ))
 
-def _solver_value_as_string(self):
+def _solver_result_as_string(self):
     if self.is_resolved:
         return str(self.value)
     return ''.join((x if isinstance(x, basestring) else '$(?)')
                    for x in self.value)
 
-SolverValue.as_string = _solver_value_as_string
+SolverResult.as_string = _solver_result_as_string
 
 # alias
-SolverValue.param_type = property(lambda self: self.var_type)
+SolverResult.param_type = property(lambda self: self.var_type)
 
 def ResolvedValue(value, param_type):
-    return SolverValue(value, param_type, True, None)
+    return SolverResult(value, param_type, True, None)
 
 def UnresolvedValue(parts, param_type):
     unknown = tuple(x for x in parts if isinstance(x, UnknownValue))
     assert len(unknown) > 0
-    return SolverValue(parts, param_type, False, unknown)
+    return SolverResult(parts, param_type, False, unknown)
 
 
 ScopeCondition = namedtuple('ScopeCondition', (
     'statement', # string
-    'value',     # SolverValue
+    'value',     # SolverResult
     'location'   # SourceLocation
 ))
 
