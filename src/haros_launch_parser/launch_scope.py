@@ -15,6 +15,8 @@ import sys
 
 import yaml
 
+# from .metamodel import ScopeCondition
+
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
 
 ###############################################################################
@@ -37,20 +39,6 @@ class ArgError(KeyError):
     #def __str__(self):
     #    return '$(arg {name}): {name} is {what}'.format(
     #        name=self.args[0], what=self.args[1])
-
-
-###############################################################################
-# Helper Data Structures
-###############################################################################
-
-ScopeCondition = namedtuple('ScopeCondition',
-    ('statement', 'value', 'unknown', 'location'))
-
-def new_if(str_value, unknown, location=None):
-    return ScopeCondition('if', str_value, tuple(unknown), location)
-
-def new_unless(str_value, unknown, location=None):
-    return ScopeCondition('unless', str_value, tuple(unknown), location)
 
 
 ###############################################################################

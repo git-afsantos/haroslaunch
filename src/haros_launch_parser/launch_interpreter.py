@@ -10,13 +10,13 @@
 from collections import namedtuple
 
 from .launch_scope import (
-    new_if, new_unless,
     ArgError, LaunchScope, NodeScope, GroupScope
 )
 from .launch_xml_parser import SchemaError
+from .metamodel import IfCondition, UnlessCondition
 from .sub_parser import (
     TYPE_STRING, TYPE_YAML,
-    convert_to_bool, convert_to_yaml, convert_value, new_literal_result,
+    convert_to_bool, convert_to_yaml, convert_value,
     resolve_to_yaml,
     SubstitutionError, SubstitutionParser
 )
@@ -83,12 +83,10 @@ def _resolve_condition(tag, scope):
             return True
         if f.is_resolved:
             return not f.value
-        loc = _launch_location(scope.filepath, tag)
-        return new_unless(tag.unless_attr, f.unknown, location=loc)
+        return UnlessCondition(f, _launch_location(scope.filepath, tag))
     if t.is_resolved:
         return t.value
-    loc = _launch_location(scope.filepath, tag)
-    return new_if(tag.if_attr, t.unknown, location=loc)
+    return IfCondition(t, _launch_location(scope.filepath, tag))
 
 
 ###############################################################################

@@ -13,6 +13,7 @@ import re
 
 import yaml
 
+from .metamodel import (ResolvedValue, UnknownValue, UnresolvedValue)
 import .rosparam_yaml_monkey_patch
 
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
@@ -302,27 +303,6 @@ _COMMANDS = {
 # Substitution Parser
 ###############################################################################
 
-_Unknown = namedtuple('UnknownValue', ('cmd', 'args', 'text'))
-
-SubstitutionResult = namedtuple('SubstitutionResult',
-    ('value', 'param_type', 'is_resolved', 'unknown'))
-# `value` contains string and unknown parts if not resolved
-
-def _result_as_string(self):
-    if self.is_resolved:
-        return str(self.value)
-    return ''.join((x if isinstance(x, basestring) else '$(?)')
-                   for x in self.parts)
-
-SubstitutionResult.as_string = _result_as_string
-
-def new_literal_result(value, param_type):
-    return SubstitutionResult(value, param_type, True, None)
-
-def new_unknown_result(parts, param_type):
-    unknown = tuple(x for x in parts if isinstance(x, _Unknown))
-    return SubstitutionResult(parts, param_type, False, unknown)
-
 # Usage:
 #   value = '$(find robot_pkg)/$(arg robot_name)'
 #   value = SubstitutionParser(value, param_type='string')
@@ -369,7 +349,7 @@ class SubstitutionParser(object):
     def of_yaml(cls, value):
         return cls(value, param_type=TYPE_YAML)
 
-    # returns a SubstitutionResult tuple
+    # returns a SolverValue
     # `r.value` is converted to `self.param_type` if possible
     # throws SubstitutionError, ValueError
     def resolve(self, scope):
@@ -382,12 +362,12 @@ class SubstitutionParser(object):
                 parts.append(value)
             except UnknownValueError as e:
                 unknown = True
-                parts.append(_Unknown(e.args[0], e.args[1], str(cmd)))
+                parts.append(UnknownValue(e.args[0], e.args[1], str(cmd)))
         if unknown:
-            return new_unknown_result(parts, self.param_type)
+            return UnresolvedValue(parts, self.param_type)
         value = ''.join(parts)
         value = convert_value(value, param_type=self.param_type) #!
-        return new_literal_result(value, self.param_type)
+        return ResolvedValue(value, self.param_type)
 
     def _build_command_list(self, value):
         self._commands = []
