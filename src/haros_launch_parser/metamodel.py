@@ -86,41 +86,6 @@ def UnlessCondition(value, location):
     return ScopeCondition('unless', value, location)
 
 
-# Basically Disjunctive Normal Form,
-#   `paths` represents all the possible paths (`or`)
-#   each path is a conjunction of conditions (`and`)
-#   e.g.: `(c1 and c2 and c3) or (c1 and c3) or (c4)`
-class PresenceCondition(object):
-    __slots__ = (
-        'paths', # [[ScopeCondition]]
-    )
-
-    def __init__(self, paths=None):
-        self.paths = paths if paths is not None else [[]]
-
-    def add_path(self, path=None):
-        path = path if path is not None else []
-        self.paths.append(path)
-
-    def add_branch(self, i=-1):
-        if self.paths[i]:
-            self.paths.append(list(self.paths[i]))
-
-    def append(self, condition, i=-1):
-        self.paths[i].append(condition)
-
-    def append_to_all(self, condition):
-        for path in self.paths:
-            path.append(condition)
-
-    def __str__(self):
-        conjuncts = []
-        for path in self.paths:
-            s = ' and '.join(cond.as_string() for cond in path)
-            conjuncts.append('({})'.format(s))
-        return ' or '.join(conjuncts)
-
-
 ###############################################################################
 # Runtime Entities
 ###############################################################################
