@@ -95,7 +95,7 @@ def _resolve_condition(tag, scope):
     return LogicVariable(t.as_string(), c)
 
 def _resolve_ns_clear_params(tag, scope):
-    clear = _literal(tag.resolve_clear_params(scope))
+    clear = _literal(tag.resolve_clear_params(scope)) #!
     # `resolve_clear_params()` checks for `ns` if `clear` is True
     ns = tag.resolve_ns(scope)
     assert not clear or ns is not None
@@ -225,8 +225,6 @@ class LaunchInterpreter(object):
         # RosName.check_valid_name(name, ns=False, wildcards=True)
         clear = _literal(tag.resolve_clear_params(scope)) #!
         ns = _string_or_None(tag.resolve_ns(scope))
-        if clear and not name:
-            raise _empty_value('name')
         pkg = _literal(tag.resolve_pkg(scope)) #!
         exec = _literal(tag.resolve_type(scope)) #!
         machine = _string_or_None(tag.resolve_machine(scope))
@@ -241,6 +239,8 @@ class LaunchInterpreter(object):
         prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
         new_scope = scope.new_node(name, ns, condition)
         if clear:
+            if not name:
+                raise _empty_value('name')
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
         self._make_node(new_scope, pkg, exec, machine=machine, args=args,
