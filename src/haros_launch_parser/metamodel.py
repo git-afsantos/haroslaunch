@@ -7,7 +7,9 @@
 # Imports
 ###############################################################################
 
+from __builtins__ import range
 from collections import namedtuple
+import re
 
 from .logic import LOGIC_TRUE
 
@@ -15,12 +17,111 @@ from .logic import LOGIC_TRUE
 # Constants
 ###############################################################################
 
+VAR_STRING = '$(?)'
+
 ###############################################################################
 # ROS Names
 ###############################################################################
 
 class RosName(object):
-    pass
+    __slots__ = ('_given', '_name', '_own', '_ns')
+
+    WILDCARD = '*'
+
+    @staticmethod
+    def resolve(name, ns='/', pns=''):
+        if name.startswith('~'):
+            if pns.endswith('/'):
+                return pns + name[1:]
+            return pns + '/' + name[1:]
+        elif name.startswith('/'):
+            return name
+        elif ns.endswith('/'):
+            return ns + name
+        return ns + '/' + name
+
+    @staticmethod
+    def transform(name, ns='/', pns='', remaps=None):
+        name = RosName.resolve(name, ns=ns, pns=pns)
+        if remaps:
+            return remaps.get(name, name)
+        return name
+
+    def __init__(self, name, ns='/', pns='', remaps=None):
+        name = name or ''
+        self._given = name
+        self._name = RosName.transform(name, ns=ns, pns=pns, remaps=remaps)
+        if self._name.endswith('/'):
+            self._own = ''
+            self._ns = self._name
+        else:
+            parts = self._name.rsplit('/', 1)
+            self._own = parts[-1]
+            self._ns = parts[0] or '/'
+
+    @property
+    def full(self):
+        return self._name
+
+    @property
+    def own(self):
+        return self._own
+
+    @property
+    def namespace(self):
+        return self._ns
+
+    @property
+    def given(self):
+        return self._given
+
+    @property
+    def is_global(self):
+        return self._given.startswith('/')
+
+    @property
+    def is_private(self):
+        return self._given.startswith('~')
+
+    @property
+    def is_unknown(self):
+        return self.WILDCARD in self._name
+
+    def join(self, name):
+        return RosName(name, ns=self._name, pns=self._name)
+
+    def to_pattern(self):
+        assert self._name.startswith('/')
+        parts = self._name.split('/')
+        assert not parts[0]
+        for i in range(len(parts)):
+            if parts[i] == self.WILDCARD:
+                parts[i] = '(.+?)'
+            else:
+                parts[i] = parts[i].replace(self.WILDCARD, '(.*?)')
+        parts.append('$')
+        return '/'.join(parts)
+
+    def to_regex(self):
+        return re.compile(self.to_pattern())
+
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return self._name == other._name
+        return self._name == other
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return self._name.__hash__()
+
+    def __str__(self):
+        return self._name
+
+    def __repr__(self):
+        return "{}({!r}, ns={!r})".format(
+            type(self).__name__, self._own, self._ns)
 
 
 ###############################################################################
@@ -50,10 +151,10 @@ SolverResult = namedtuple('SolverResult', (
     'unknown'       # [UnknownValue]
 ))
 
-def _solver_result_as_string(self):
+def _solver_result_as_string(self, wildcard=VAR_STRING):
     if self.is_resolved:
         return str(self.value)
-    return ''.join((x if isinstance(x, basestring) else '$(?)')
+    return ''.join((x if isinstance(x, basestring) else wildcard)
                    for x in self.value)
 
 SolverResult.as_string = _solver_result_as_string
@@ -76,8 +177,9 @@ ScopeCondition = namedtuple('ScopeCondition', (
     'location'   # SourceLocation
 ))
 
-def _scope_condition_as_string(self):
-    return '{} ({})'.format(self.statement, self.value.as_string())
+def _scope_condition_as_string(self, wildcard=VAR_STRING):
+    return '{} ({})'.format(self.statement,
+        self.value.as_string(wildcard=wildcard))
 
 ScopeCondition.as_string = _scope_condition_as_string
 
