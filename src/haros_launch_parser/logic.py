@@ -23,6 +23,10 @@ class LogicValue(object):
         return False
 
     @property
+    def is_atomic(self):
+        return self.is_true or self.is_false or self.is_variable
+
+    @property
     def is_not(self):
         return False
 
@@ -81,7 +85,7 @@ class LogicTrue(LogicValue):
     def __eq__(self, other):
         return isinstance(other, LogicTrue)
 
-LogicValue.T = LogicTrue()
+LOGIC_TRUE = LogicValue.T = LogicTrue()
 
 
 class LogicFalse(LogicValue):
@@ -109,7 +113,7 @@ class LogicFalse(LogicValue):
     def __eq__(self, other):
         return isinstance(other, LogicFalse)
 
-LogicValue.F = LogicFalse()
+LOGIC_FALSE = LogicValue.F = LogicFalse()
 
 
 class LogicVariable(LogicValue):

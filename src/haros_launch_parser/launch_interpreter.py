@@ -13,6 +13,7 @@ from .launch_scope import (
     ArgError, LaunchScope, NodeScope, GroupScope
 )
 from .launch_xml_parser import SchemaError
+from .logic import LOGIC_TRUE, LOGIC_FALSE, LogicVariable
 from .metamodel import IfCondition, SourceLocation, UnlessCondition
 from .sub_parser import (
     TYPE_STRING, TYPE_YAML,
@@ -32,8 +33,8 @@ class LaunchInterpreterError(Exception):
 
 class SanityError(Exception):
     @classmethod
-    def conditional_tag(cls, tag, unknown):
-        what = ', '.join(x.text for x in unknown)
+    def conditional_tag(cls, tag, condition):
+        what = ', '.join(x.text for x in condition.data.value.unknown)
         msg = 'unable to resolve conditional <{}>: unknown {}'
         return cls(msg.format(tag.tag, what))
 
@@ -76,13 +77,15 @@ def _resolve_condition(tag, scope):
     if t is None: # 'if' not defined in XML
         f = tag.resolve_unless(scope)
         if f is None: # 'unless' not defined in XML
-            return True
+            return LOGIC_TRUE
         if f.is_resolved:
-            return not f.value
-        return UnlessCondition(f, _launch_location(scope.filepath, tag))
+            return LOGIC_FALSE if f.value else LOGIC_TRUE
+        c = UnlessCondition(f, _launch_location(scope.filepath, tag))
+        return LogicVariable(f.as_string(), c)
     if t.is_resolved:
-        return t.value
-    return IfCondition(t, _launch_location(scope.filepath, tag))
+        return LOGIC_TRUE if t.value else LOGIC_FALSE
+    c = IfCondition(t, _launch_location(scope.filepath, tag))
+    return LogicVariable(t.as_string(), c)
 
 
 ###############################################################################
@@ -147,7 +150,8 @@ class LaunchInterpreter(object):
             try:
                 tag.check_schema()
                 condition = _resolve_condition(tag, scope)
-                if condition is False and not self.include_absent:
+                assert condition.is_atomic
+                if condition.is_false and not self.include_absent:
                     continue
                 if tag.tag == 'arg':
                     self._arg_tag(tag, scope, condition)
@@ -178,11 +182,11 @@ class LaunchInterpreter(object):
 
     def _arg_tag(self, tag, scope, condition):
         assert not tag.children
-        if condition is False:
+        if condition.is_false:
             return
-        if condition is not True:
-            raise SanityError.conditional_tag(tag, condition.unknown)
-        assert condition is True
+        if condition.is_variable:
+            raise SanityError.conditional_tag(tag, condition)
+        assert condition.is_true
         name = _literal(tag.resolve_name(scope))
         value = tag.resolve_value(scope)
         if value is None:
@@ -224,10 +228,10 @@ class LaunchInterpreter(object):
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children
-        if condition is False:
+        if condition.is_false:
             return
-        if condition is not True:
-            raise SanityError.conditional_tag(tag, condition.unknown)
+        if condition.is_variable:
+            raise SanityError.conditional_tag(tag, condition)
         source = tag.resolve_from(scope).as_string()
         target = tag.resolve_to(scope).as_string()
         scope.set_remap(source, target)
@@ -329,17 +333,17 @@ class LaunchInterpreter(object):
                         reason=reason, ns=ns)
 
     def _rosparam_tag_delete(self, tag, scope, condition):
-        if condition is False:
+        if condition.is_false:
             return
-        if condition is not True:
-            raise SanityError.conditional_tag(tag, condition.unknown)
+        if condition.is_variable:
+            raise SanityError.conditional_tag(tag, condition)
         ns = _string_or_None(tag.resolve_ns(scope))
         param = _string_or_None(tag.resolve_param(scope))
         cmd = _RosparamDelete(ns, param)
         self.rosparam_cmds.append(cmd)
 
     def _rosparam_tag_dump(self, tag, scope, condition):
-        if condition is False:
+        if condition.is_false:
             return
         ns = _string_or_None(tag.resolve_ns(scope))
         param = _string_or_None(tag.resolve_param(scope))
@@ -376,10 +380,10 @@ class LaunchInterpreter(object):
 
     def _env_tag(self, tag, scope, condition):
         assert not tag.children
-        if condition is False:
+        if condition.is_false:
             return
-        if condition is not True:
-            raise SanityError.conditional_tag(tag, condition.unknown)
+        if condition.is_variable:
+            raise SanityError.conditional_tag(tag, condition)
         name = _literal(tag.resolve_name(scope)) #!
         value = tag.resolve_value(scope).as_string() # allow wildcards
         scope.set_env(name, value)

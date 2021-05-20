@@ -9,6 +9,8 @@
 
 from collections import namedtuple
 
+from .logic import LOGIC_TRUE
+
 ###############################################################################
 # Constants
 ###############################################################################
@@ -103,18 +105,18 @@ class RosResource(RosRuntimeEntity):
     def __init__(self, system, rosname, condition=None):
         super(RosResource, self).__init__(rosname)
         self.system = system
-        self.condition = condition
+        self.condition = condition or LOGIC_TRUE
 
 
 class RosNode(RosResource):
     __slots__ = RosResource.__slots__ + ()
 
-    def __init__(self, system, rosname):
-        super(RosNode, self).__init__(system, rosname)
+    def __init__(self, system, rosname, condition=None):
+        super(RosNode, self).__init__(system, rosname, condition=condition)
 
 
 class RosParameter(RosResource):
     __slots__ = RosResource.__slots__ + ()
 
-    def __init__(self, system, rosname):
-        super(RosParameter, self).__init__(system, rosname)
+    def __init__(self, system, rosname, condition=None):
+        super(RosParameter, self).__init__(system, rosname, condition=condition)
