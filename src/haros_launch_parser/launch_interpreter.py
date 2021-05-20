@@ -14,7 +14,9 @@ from .launch_scope import (
 )
 from .launch_xml_parser import SchemaError
 from .logic import LOGIC_TRUE, LOGIC_FALSE, LogicVariable
-from .metamodel import IfCondition, SourceLocation, UnlessCondition
+from .metamodel import (
+    IfCondition, RosName, SourceLocation, UnlessCondition
+)
 from .sub_parser import (
     TYPE_STRING, TYPE_YAML,
     convert_to_bool, convert_to_yaml, convert_value,
@@ -70,6 +72,11 @@ def _string_or_None(substitution_result):
         return None
     return substitution_result.as_string()
 
+def _rosname_string(substitution_result):
+    if substitution_result is None:
+        return ''
+    return substitution_result.as_string(RosName.WILDCARD)
+
 def _resolve_condition(tag, scope):
     # `tag` is a Tag object from .launch_xml_parser
     # `scope` is a Scope object from .launch_scope
@@ -86,6 +93,20 @@ def _resolve_condition(tag, scope):
         return LOGIC_TRUE if t.value else LOGIC_FALSE
     c = IfCondition(t, _launch_location(scope.filepath, tag))
     return LogicVariable(t.as_string(), c)
+
+def _resolve_ns_clear_params(tag, scope):
+    clear = _literal(tag.resolve_clear_params(scope))
+    # `resolve_clear_params()` checks for `ns` if `clear` is True
+    ns = tag.resolve_ns(scope)
+    assert not clear or ns is not None
+    ns = _rosname_string(ns)
+    return (ns, clear)
+
+def _result_to_rosname(result, scope):
+    ns = scope.ns
+    pns = scope.private_ns
+    name = '' if result is None else result.as_string(wildcard=RosName.WILDCARD)
+    return RosName.resolve(name, ns=ns, pns=pns)
 
 
 ###############################################################################
@@ -367,12 +388,8 @@ class LaunchInterpreter(object):
         self._interpret_tree(tree, scope)
 
     def _group_tag(self, tag, scope, condition):
-        clear = _literal(tag.resolve_clear_params(scope))
-        if clear:
-            ns = _literal(tag.resolve_ns(scope))
-        else:
-            ns = _literal_or_None(tag.resolve_ns(scope))
-        # TODO warn if global ns
+        ns, clear = _resolve_ns_clear_params(tag, scope)
+        # TODO: warn if global ns
         new_scope = scope.new_group(ns, condition) # default=scope.ns
         if clear:
             self._clear_params(new_scope.ns)
@@ -423,18 +440,8 @@ class LaunchInterpreter(object):
         self._make_test(new_scope, test_name, pkg, exec, args=args,
             prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
 
-    def _clear_params(self, rosname):
-        if not ns:
-            ns = scope.ns
-        else:
-            pass
-        if name is None:
-            pass
-        elif name == '':
-            pass
-        else:
-            pass
-        cmd = _RosparamDelete(ns, name)
+    def _clear_params(self, ns):
+        cmd = _RosparamDelete(ns, '')
         self.rosparam_cmds.append(cmd)
 
     def _make_node(self, scope, pkg, exec, machine=None, required=False,
