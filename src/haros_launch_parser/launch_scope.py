@@ -7,7 +7,7 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import os
 import random
 import socket
@@ -15,7 +15,7 @@ import sys
 
 import yaml
 
-# from .metamodel import ScopeCondition
+from .data_structs import ConditionalData
 
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
 
@@ -70,7 +70,7 @@ class BaseScope(object):
         self.remaps = remaps
         self.condition = condition
         self.anonymous = anon
-        self.node_env = env
+        self.node_env = env # defaultdict(ConditionalData)
 
     @property
     def private_ns(self):
@@ -125,8 +125,11 @@ class BaseScope(object):
     def get_env(self, name):
         return self.system.get_environment_variable(name)
 
-    def set_env(self, name, value):
-        self.node_env[name] = value
+    def set_env(self, name, value, condition):
+        # assert isinstance(name, str)
+        # assert isinstance(value, SolverResult)
+        # assert isinstance(condition, LogicValue)
+        self.node_env[name].set(value, condition)
 
     def get_pkg_path(self, name):
         dirpath = self.system.get_package_path(name)

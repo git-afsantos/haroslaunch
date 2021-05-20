@@ -397,13 +397,9 @@ class LaunchInterpreter(object):
 
     def _env_tag(self, tag, scope, condition):
         assert not tag.children
-        if condition.is_false:
-            return
-        if condition.is_variable:
-            raise SanityError.conditional_tag(tag, condition)
         name = _literal(tag.resolve_name(scope)) #!
-        value = tag.resolve_value(scope).as_string() # allow wildcards
-        scope.set_env(name, value)
+        value = tag.resolve_value(scope)
+        scope.set_env(name, value, condition)
 
     def _machine_tag(self, tag, scope, condition):
         assert not tag.children
