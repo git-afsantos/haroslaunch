@@ -15,7 +15,8 @@ import sys
 
 import yaml
 
-from .data_structs import ConditionalData
+from .data_structs import ConditionalData, SolverResult
+from .logic import LogicValue
 
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
 
@@ -114,28 +115,35 @@ class BaseScope(object):
             return self.arg_defaults[name]
 
     def declare_arg(self, name, default=None):
+        assert isinstance(name, str)
+        assert default is None or isinstance(default, str)
         if name in self.arg_defaults:
             raise ArgError.duplicate(name)
         self.arg_defaults[name] = default
 
     def set_arg(self, name, value):
+        assert isinstance(name, str)
+        assert value is None or isinstance(value, str)
         self.declare_arg(name)
         self.args[name] = value
 
     def get_env(self, name):
+        assert isinstance(name, str)
         return self.system.get_environment_variable(name)
 
     def set_env(self, name, value, condition):
-        # assert isinstance(name, str)
-        # assert isinstance(value, SolverResult)
-        # assert isinstance(condition, LogicValue)
+        assert isinstance(name, str)
+        assert isinstance(value, SolverResult)
+        assert isinstance(condition, LogicValue)
         self.node_env[name].set(value, condition)
 
     def get_pkg_path(self, name):
+        assert isinstance(name, str)
         dirpath = self.system.get_package_path(name)
         return None if dirpath is None else str(dirpath)
 
     def get_anonymous_name(self, name):
+        assert isinstance(name, str)
         value = self.anonymous.get(name)
         if value is None:
             value = self._anonymous_name(name)
@@ -148,14 +156,13 @@ class BaseScope(object):
             os.getpid(), random.randint(0, sys.maxsize))
         return name.replace('.', '_').replace('-', '_').replace(':', '_')
 
-    def get_remap(self, name): # FIXME: this might not be needed
-        # may be None if `to` is unknown
-        return self.remaps.get(name, name)
-
-    def set_remap(self, from_name, to_name):
-        source = RosName.resolve(from_name, self.ns, private_ns=self.private_ns)
-        target = RosName.resolve(to_name, self.ns, private_ns=self.private_ns)
-        self.remaps[source] = target
+    def set_remap(self, from_name, to_name, condition):
+        assert isinstance(from_name, str)
+        assert isinstance(to_name, str)
+        assert isinstance(condition, LogicValue)
+        source = RosName.resolve(from_name, ns=self.ns, pns=self.private_ns)
+        target = RosName.resolve(to_name, ns=self.ns, pns=self.private_ns)
+        self.remaps[source].set(target, condition)
 
     def set_param(self, name, value, param_type, condition, location,
                   reason=None, ns=None):
@@ -163,8 +170,8 @@ class BaseScope(object):
         pass # FIXME
 
     def new_group(self, ns, condition):
-        # assert isinstance(ns, str)
-        # assert isinstance(condition, LogicValue)
+        assert isinstance(ns, str)
+        assert isinstance(condition, LogicValue)
         parent = self
         system = self.system
         dirpath = self.dirpath
@@ -172,7 +179,7 @@ class BaseScope(object):
             ns = RosName.resolve(ns, self.ns, private_ns=self.private_ns)
         args = self.args
         arg_defaults = self.arg_defaults
-        remaps = dict(self.remaps)
+        remaps = dict(self.remaps) # TODO: defaultdict ConditionalData
         ifunless = condition
         anon = self.anonymous
         env = dict(self.node_env)
@@ -185,10 +192,10 @@ class BaseScope(object):
         return new
 
     def new_include(self, filepath, ns, condition, pass_all_args):
-        # assert isinstance(filepath, str)
-        # assert isinstance(ns, str)
-        # assert isinstance(condition, LogicValue)
-        # assert isinstance(pass_all_args, bool)
+        assert isinstance(filepath, str)
+        assert isinstance(ns, str)
+        assert isinstance(condition, LogicValue)
+        assert isinstance(pass_all_args, bool)
         return new
 
     def new_launch(self):
