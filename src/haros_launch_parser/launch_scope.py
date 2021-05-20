@@ -184,7 +184,11 @@ class BaseScope(object):
     def new_node(self, name, ns, condition):
         return new
 
-    def new_include(self, filepath, pass_all_args, ns=None):
+    def new_include(self, filepath, ns, condition, pass_all_args):
+        # assert isinstance(filepath, str)
+        # assert isinstance(ns, str)
+        # assert isinstance(condition, LogicValue)
+        # assert isinstance(pass_all_args, bool)
         return new
 
     def new_launch(self):

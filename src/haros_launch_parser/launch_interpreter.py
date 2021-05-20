@@ -375,9 +375,8 @@ class LaunchInterpreter(object):
     def _include_tag(self, tag, scope, condition):
         filepath = _literal(tag.resolve_file(scope)) #!
         pass_all_args = _literal(tag.resolve_pass_all_args(scope)) #!
-        clear = _literal(tag.resolve_clear_params(scope)) #!
-        ns = _literal_or_None(tag.resolve_ns(scope))
-        new_scope = scope.new_include(filepath, pass_all_args, ns=ns)
+        ns, clear = _resolve_ns_clear_params(tag, scope) #!
+        new_scope = scope.new_include(filepath, ns, condition, pass_all_args)
         if clear:
             self._clear_params(new_scope.ns)
         self._interpret_tree(tag, new_scope)
@@ -385,10 +384,10 @@ class LaunchInterpreter(object):
         tree = self.system.request_parse_tree(filepath)
         assert tree.tag == 'launch'
         tree.check_schema()
-        self._interpret_tree(tree, scope)
+        self._interpret_tree(tree, new_scope)
 
     def _group_tag(self, tag, scope, condition):
-        ns, clear = _resolve_ns_clear_params(tag, scope)
+        ns, clear = _resolve_ns_clear_params(tag, scope) #!
         # TODO: warn if global ns
         new_scope = scope.new_group(ns, condition) # default=scope.ns
         if clear:
