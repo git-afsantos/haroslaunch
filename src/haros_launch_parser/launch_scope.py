@@ -50,15 +50,17 @@ class BaseScope(object):
                  'condition', 'remaps', 'anonymous', 'node_env')
 
     def __init__(self, parent, system, dirpath, ns, args, arg_defaults,
-                 remaps, ifunless, anon, env):
+                 remaps, condition, anon, env):
         # `parent` is the parent scope or None if root scope
         # `system` is the API to the ROS/file system
         # `dirpath` is a pathlib.Path
         # `ns` is the current namespace for this scope
-        # `args` is the dict of currently declared/defined args
-        # `condition` is the unknown ScopeCondition affecting this scope
-        #   - should be True if the scope is always present
-        #   - should be False if the scope is never present
+        # `args` is the dict of currently defined/assigned args
+        # `arg_defaults` is the dict of declared args
+        # `remaps` is the dict of available remaps
+        # `anonymous` is the anonymous name cache
+        # `env` is the new environment variables assigned with <env>
+        # `condition` is the LogicValue affecting this scope
         self.parent = parent
         self.system = system
         self.dirpath = dirpath
@@ -82,20 +84,21 @@ class BaseScope(object):
 
     @property
     def is_present(self):
-        scope = self
-        while scope is not None:
-            if scope.condition is False:
-                return False
-            if scope.condition is not True:
-                return None
-            scope = scope.parent
-        return True
+        return self.condition.is_true
 
-    def get_conditions(self):
+    @property
+    def is_absent(self):
+        return self.condition.is_false
+
+    @property
+    def is_conditional(self):
+        return not self.is_present and not self.is_absent
+
+    def get_conditions(self): # FIXME: might not be needed
         conditions = []
         scope = self
         while scope is not None:
-            if scope.condition is not True:
+            if not scope.condition.is_true:
                 conditions.append(scope.condition)
             scope = scope.parent
         if conditions:
@@ -120,13 +123,13 @@ class BaseScope(object):
         self.args[name] = value
 
     def get_env(self, name):
-        return self.system.request_environment_variable(name)
+        return self.system.get_environment_variable(name)
 
     def set_env(self, name, value):
         self.node_env[name] = value
 
     def get_pkg_path(self, name):
-        dirpath = self.system.request_package_path(name)
+        dirpath = self.system.get_package_path(name)
         return None if dirpath is None else str(dirpath)
 
     def get_anonymous_name(self, name):
@@ -142,7 +145,7 @@ class BaseScope(object):
             os.getpid(), random.randint(0, sys.maxsize))
         return name.replace('.', '_').replace('-', '_').replace(':', '_')
 
-    def get_remap(self, name):
+    def get_remap(self, name): # FIXME: this might not be needed
         # may be None if `to` is unknown
         return self.remaps.get(name, name)
 
@@ -157,6 +160,8 @@ class BaseScope(object):
         pass # FIXME
 
     def new_group(self, ns, condition):
+        # assert isinstance(ns, str)
+        # assert isinstance(condition, LogicValue)
         parent = self
         system = self.system
         dirpath = self.dirpath
