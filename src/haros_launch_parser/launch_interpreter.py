@@ -75,7 +75,7 @@ def _string_or_None(substitution_result):
 def _rosname_string(substitution_result):
     if substitution_result is None:
         return ''
-    return substitution_result.as_string(RosName.WILDCARD)
+    return substitution_result.as_string(wildcard=RosName.WILDCARD)
 
 def _resolve_condition(tag, scope):
     # `tag` is a Tag object from .launch_xml_parser
@@ -249,13 +249,10 @@ class LaunchInterpreter(object):
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children
-        if condition.is_false:
-            return
-        if condition.is_variable:
-            raise SanityError.conditional_tag(tag, condition)
-        source = tag.resolve_from(scope).as_string()
-        target = tag.resolve_to(scope).as_string()
-        scope.set_remap(source, target)
+        if not condition.is_false:
+            source = _rosname_string(tag.resolve_from(scope))
+            target = _rosname_string(tag.resolve_to(scope))
+            scope.set_remap(source, target, condition)
 
     def _param_tag(self, tag, scope, condition):
         assert not tag.children
@@ -396,9 +393,10 @@ class LaunchInterpreter(object):
 
     def _env_tag(self, tag, scope, condition):
         assert not tag.children
-        name = _literal(tag.resolve_name(scope)) #!
-        value = tag.resolve_value(scope)
-        scope.set_env(name, value, condition)
+        if not condition.is_false:
+            name = _literal(tag.resolve_name(scope)) #!
+            value = tag.resolve_value(scope)
+            scope.set_env(name, value, condition)
 
     def _machine_tag(self, tag, scope, condition):
         assert not tag.children
