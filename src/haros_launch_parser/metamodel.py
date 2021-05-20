@@ -20,6 +20,34 @@ class RosName(object):
     __slots__ = ('_given', '_name', '_own', '_ns')
 
     WILDCARD = '*'
+    _FIRST_PART = re.compile(r'^[\~]?([A-Za-z][\w]*)?$')
+    _NAME_CHARS = re.compile(r'^[A-Za-z][\w]*$')
+
+    @staticmethod
+    def check_valid_name(name, no_ns=False, no_empty=True):
+        if name is None:
+            raise ValueError('invalid ROS name: ' + name)
+        if no_empty and not name:
+            raise ValueError('ROS name cannot be empty')
+        if no_ns:
+            m = self._NAME_CHARS.match(name)
+            if not m or m.group(0) != name:
+                raise ValueError('invalid ROS name: ' + name)
+        else:
+            parts = name.split('/')
+            m = self._FIRST_PART.match(parts[0])
+            if not m or m.group(0) != parts[0]:
+                raise ValueError('invalid ROS name: ' + name)
+            for i in range(1, len(parts)-1):
+                m = self._NAME_CHARS.match(parts[i])
+                if not m or m.group(0) != parts[i]:
+                    raise ValueError('invalid ROS name: ' + name)
+            if no_empty and not parts[-1]:
+                raise ValueError('ROS name cannot be empty or end with "/"')
+            if len(parts) > 1 and parts[-1]:
+                m = self._NAME_CHARS.match(parts[-1])
+                if not m or m.group(0) != parts[-1]:
+                    raise ValueError('invalid ROS name: ' + name)
 
     @staticmethod
     def resolve(name, ns='/', pns=''):
@@ -42,8 +70,9 @@ class RosName(object):
 
     def __init__(self, name, ns='/', pns='', remaps=None):
         name = name or ''
-        self._given = name
         self._name = RosName.transform(name, ns=ns, pns=pns, remaps=remaps)
+        # RosName.check_valid_name(self._name, no_ns=False, no_empty=False)
+        self._given = name
         if self._name.endswith('/'):
             self._own = ''
             self._ns = self._name
