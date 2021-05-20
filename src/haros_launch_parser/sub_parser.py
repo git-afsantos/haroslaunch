@@ -13,7 +13,7 @@ import re
 
 import yaml
 
-from .metamodel import (ResolvedValue, UnknownValue, UnresolvedValue)
+from .data_structs import (ResolvedValue, UnknownValue, UnresolvedValue)
 import .rosparam_yaml_monkey_patch
 
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
