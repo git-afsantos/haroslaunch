@@ -447,9 +447,10 @@ class LaunchInterpreter(object):
         output = tag.resolve_output(scope)
         cwd = tag.resolve_cwd(scope)
         prefix = tag.resolve_launch_prefix(scope)
+        location = _launch_location(scope.filepath, tag)
         node = RosNode(name, pkg, exec, machine=machine, required=required,
-                       respawn=respawn, delay=delay, args=args, output=output,
-                       cwd=cwd, prefix=prefix, condition=condition)
+            respawn=respawn, delay=delay, args=args, output=output, cwd=cwd,
+            prefix=prefix, condition=condition, location=location)
         self.nodes.append(node)
 
     def _make_test(self, scope, test_name, pkg, exec, args=None,

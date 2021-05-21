@@ -11,7 +11,7 @@ from __builtins__ import range
 import re
 
 from .data_structs import (
-    ResolvedBool, ResolvedDouble, ResolvedString, SolverResult
+    ResolvedBool, ResolvedDouble, ResolvedString, SolverResult, SourceLocation,
 )
 from .logic import LOGIC_TRUE, LogicValue
 
@@ -168,14 +168,20 @@ class RosRuntimeEntity(object):
 
 
 class RosResource(RosRuntimeEntity):
-    __slots__ = RosRuntimeEntity.__slots__ + ('system', 'condition')
+    __slots__ = RosRuntimeEntity.__slots__ + (
+        'system',       # None | string
+        'condition',    # LogicValue
+        'traceability'  # None | SourceLocation
+    )
 
-    def __init__(self, name, system=None, condition=None):
+    def __init__(self, name, system=None, condition=None, location=None):
         super(RosResource, self).__init__(name)
         assert system is None or isinstance(system, str)
         assert condition is None or isinstance(condition, LogicValue)
+        assert location is None or isinstance(location, SourceLocation)
         self.system = system
         self.condition = condition or LOGIC_TRUE
+        self.traceability = location
 
 
 class RosNode(RosResource):
@@ -192,10 +198,11 @@ class RosNode(RosResource):
         'launch_prefix',# None|SolverResult(TYPE_STRING)
     )
 
-    def __init__(self, name, pkg, exec, system=None, machine=None,
-                 required=None, respawn=None, delay=None, args=None,
-                 output=None, cwd=None, prefix=None, condition=None):
-        super(RosNode, self).__init__(name, system=system, condition=condition)
+    def __init__(self, name, pkg, exec, system=None, args=None, machine=None,
+                 required=None, respawn=None, delay=None, output=None, cwd=None,
+                 prefix=None, condition=None, location=None):
+        super(RosNode, self).__init__(name, system=system, condition=condition,
+            location=location)
         assert isinstance(pkg, str)
         assert isinstance(exec, str)
         assert machine is None or isinstance(machine, SolverResult)
@@ -212,7 +219,10 @@ class RosNode(RosResource):
         self.is_required = required or ResolvedBool(False)
         self.respawns = respawn or ResolvedBool(False)
         self.respawn_delay = delay or ResolvedDouble(0.0)
-        self.
+        self.args = args or ResolvedString('')
+        self.output = output or ResolvedString('log')
+        self.working_dir = cwd or ResolvedString('ROS_HOME')
+        self.launch_prefix = prefix
 
 
 class RosParameter(RosResource):
