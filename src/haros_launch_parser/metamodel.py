@@ -20,11 +20,14 @@ class RosName(object):
     __slots__ = ('_given', '_name', '_own', '_ns')
 
     WILDCARD = '*'
-    _FIRST_PART = re.compile(r'^[\~]?([A-Za-z][\w]*)?$')
-    _NAME_CHARS = re.compile(r'^[A-Za-z][\w]*$')
+    _FIRST_PART = re.compile(r'^[\~]?([A-Za-z\*][\w\*]*)?$')
+    _NAME_CHARS = re.compile(r'^[A-Za-z\*][\w\*]*$')
 
     @staticmethod
     def check_valid_name(name, no_ns=False, no_empty=True):
+        # does not accept `None`
+        # does not accept '/' or '~' if `no_ns`
+        # does not accept empty own names if `no_empty`
         if name is None:
             raise ValueError('invalid ROS name: ' + name)
         if no_empty and not name:
