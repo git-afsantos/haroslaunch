@@ -160,6 +160,8 @@ class BaseScope(object):
         assert isinstance(from_name, str)
         assert isinstance(to_name, str)
         assert isinstance(condition, LogicValue)
+        RosName.check_valid_name(from_name, no_ns=False, no_empty=True)
+        RosName.check_valid_name(to_name, no_ns=False, no_empty=True)
         source = RosName.resolve(from_name, ns=self.ns, pns=self.private_ns)
         target = RosName.resolve(to_name, ns=self.ns, pns=self.private_ns)
         self.remaps[source].set(target, condition)
@@ -189,6 +191,11 @@ class BaseScope(object):
         return new
 
     def new_node(self, name, ns, condition):
+        assert isinstance(name, str)
+        assert isinstance(ns, str)
+        assert isinstance(condition, LogicValue)
+        RosName.check_valid_name(name, no_ns=True, no_empty=True)
+        RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         return new
 
     def new_include(self, filepath, ns, condition, pass_all_args):
