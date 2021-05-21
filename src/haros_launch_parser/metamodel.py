@@ -10,7 +10,10 @@
 from __builtins__ import range
 import re
 
-from .logic import LOGIC_TRUE
+from .data_structs import (
+    ResolvedBool, ResolvedDouble, ResolvedString, SolverResult
+)
+from .logic import LOGIC_TRUE, LogicValue
 
 ###############################################################################
 # ROS Names
@@ -156,28 +159,64 @@ class RosName(object):
 class RosRuntimeEntity(object):
     __slots__ = ('name',)
 
-    def __init__(self, rosname):
-        self.name = rosname
+    def __init__(self, name):
+        if isinstance(name, str):
+            name = RosName(name)
+        else:
+            assert isinstance(name, RosName)
+        self.name = name
 
 
 class RosResource(RosRuntimeEntity):
     __slots__ = RosRuntimeEntity.__slots__ + ('system', 'condition')
 
-    def __init__(self, system, rosname, condition=None):
-        super(RosResource, self).__init__(rosname)
+    def __init__(self, name, system=None, condition=None):
+        super(RosResource, self).__init__(name)
+        assert system is None or isinstance(system, str)
+        assert condition is None or isinstance(condition, LogicValue)
         self.system = system
         self.condition = condition or LOGIC_TRUE
 
 
 class RosNode(RosResource):
-    __slots__ = RosResource.__slots__ + ()
+    __slots__ = RosResource.__slots__ + (
+        'package',      # string
+        'executable',   # string
+        'machine',      # None|SolverResult(TYPE_STRING)
+        'is_required',  # SolverResult(TYPE_BOOL)
+        'respawns',     # SolverResult(TYPE_BOOL)
+        'respawn_delay',# SolverResult(TYPE_DOUBLE)
+        'args',         # SolverResult(TYPE_STRING)
+        'output',       # SolverResult(TYPE_STRING)
+        'working_dir',  # SolverResult(TYPE_STRING)
+        'launch_prefix',# None|SolverResult(TYPE_STRING)
+    )
 
-    def __init__(self, system, rosname, condition=None):
-        super(RosNode, self).__init__(system, rosname, condition=condition)
+    def __init__(self, name, pkg, exec, system=None, machine=None,
+                 required=None, respawn=None, delay=None, args=None,
+                 output=None, cwd=None, prefix=None, condition=None):
+        super(RosNode, self).__init__(name, system=system, condition=condition)
+        assert isinstance(pkg, str)
+        assert isinstance(exec, str)
+        assert machine is None or isinstance(machine, SolverResult)
+        assert required is None or isinstance(required, SolverResult)
+        assert respawn is None or isinstance(respawn, SolverResult)
+        assert delay is None or isinstance(delay, SolverResult)
+        assert args is None or isinstance(args, SolverResult)
+        assert output is None or isinstance(output, SolverResult)
+        assert cwd is None or isinstance(cwd, SolverResult)
+        assert prefix is None or isinstance(prefix, SolverResult)
+        self.package = pkg
+        self.executable = exec
+        self.machine = machine
+        self.is_required = required or ResolvedBool(False)
+        self.respawns = respawn or ResolvedBool(False)
+        self.respawn_delay = delay or ResolvedDouble(0.0)
+        self.
 
 
 class RosParameter(RosResource):
     __slots__ = RosResource.__slots__ + ()
 
-    def __init__(self, system, rosname, condition=None):
-        super(RosParameter, self).__init__(system, rosname, condition=condition)
+    def __init__(self, name, system=None, condition=None):
+        super(RosParameter, self).__init__(name, system=system, condition=condition)

@@ -11,11 +11,22 @@ from collections import namedtuple
 
 from .logic import LOGIC_TRUE
 
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
+
 ###############################################################################
 # Constants
 ###############################################################################
 
 VAR_STRING = '$(?)'
+
+TYPE_BOOL = 'bool'
+TYPE_INT = 'int'
+TYPE_DOUBLE = 'double'
+TYPE_STRING = 'string'
+TYPE_STR = 'str'
+TYPE_YAML = 'yaml'
+TYPE_AUTO = 'auto'
 
 ###############################################################################
 # Source Code Location
@@ -61,6 +72,33 @@ SolverResult.param_type = property(lambda self: self.var_type)
 
 def ResolvedValue(value, param_type):
     return SolverResult(value, param_type, True, None)
+
+def ResolvedBool(value):
+    if not isinstance(value, bool):
+        raise TypeError('expected a bool, got: ' + repr(value))
+    return SolverResult(value, TYPE_BOOL, True, None)
+
+def ResolvedInt(value):
+    if not isinstance(value, int):
+        raise TypeError('expected an int, got: ' + repr(value))
+    return SolverResult(value, TYPE_INT, True, None)
+
+def ResolvedDouble(value):
+    if not isinstance(value, float):
+        raise TypeError('expected a float, got: ' + repr(value))
+    return SolverResult(value, TYPE_DOUBLE, True, None)
+
+def ResolvedString(value):
+    if not isinstance(value, basestring):
+        raise TypeError('expected a string, got: ' + repr(value))
+    return SolverResult(value, TYPE_STRING, True, None)
+
+def ResolvedYaml(value):
+    if value is not None:
+        types = (dict, list, int, float, bool, basestring)
+        if not isinstance(value, types):
+            raise TypeError('expected a YAML object, got: ' + repr(value))
+    return SolverResult(value, TYPE_YAML, True, None)
 
 def UnresolvedValue(parts, param_type):
     unknown = tuple(x for x in parts if isinstance(x, UnknownValue))

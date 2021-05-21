@@ -13,22 +13,15 @@ import re
 
 import yaml
 
-from .data_structs import (ResolvedValue, UnknownValue, UnresolvedValue)
+from .data_structs import (
+    TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STRING, TYPE_STR, TYPE_YAML,
+    TYPE_AUTO,
+    ResolvedValue, UnknownValue, UnresolvedValue
+)
 import .rosparam_yaml_monkey_patch
 
-if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
-
-###############################################################################
-# Constants
-###############################################################################
-
-TYPE_BOOL = 'bool'
-TYPE_INT = 'int'
-TYPE_DOUBLE = 'double'
-TYPE_STRING = 'string'
-TYPE_STR = 'str'
-TYPE_YAML = 'yaml'
-TYPE_AUTO = 'auto'
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
