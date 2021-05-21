@@ -373,9 +373,9 @@ class LaunchInterpreter(object):
             self._clear_params(new_scope.ns)
         self._interpret_tree(tag, new_scope)
         new_scope = new_scope.new_launch()
-        tree = self.system.request_parse_tree(filepath)
+        tree = self.system.request_parse_tree(filepath) #!
         assert tree.tag == 'launch'
-        tree.check_schema()
+        tree.check_schema() #!
         self._interpret_tree(tree, new_scope)
 
     def _group_tag(self, tag, scope, condition):
