@@ -174,11 +174,11 @@ class BaseScope(object):
     def new_group(self, ns, condition):
         assert isinstance(ns, str)
         assert isinstance(condition, LogicValue)
+        RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         parent = self
         system = self.system
         dirpath = self.dirpath
-        if ns is not None:
-            ns = RosName.resolve(ns, self.ns, private_ns=self.private_ns)
+        ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
         args = self.args
         arg_defaults = self.arg_defaults
         remaps = dict(self.remaps) # TODO: defaultdict ConditionalData
@@ -203,6 +203,7 @@ class BaseScope(object):
         assert isinstance(ns, str)
         assert isinstance(condition, LogicValue)
         assert isinstance(pass_all_args, bool)
+        RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         return new
 
     def new_launch(self):
