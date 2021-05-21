@@ -75,7 +75,14 @@ def _string_or_None(substitution_result):
 def _rosname_string(substitution_result):
     if substitution_result is None:
         return ''
-    return substitution_result.as_string(wildcard=RosName.WILDCARD)
+    name = substitution_result.as_string(wildcard=RosName.WILDCARD)
+    # collapse multiple variable symbols
+    prev = ''
+    multi = RosName.WILDCARD + RosName.WILDCARD
+    while name != prev:
+        prev = name
+        name = prev.replace(multi, RosName.WILDCARD)
+    return name
 
 def _resolve_condition(tag, scope):
     # `tag` is a Tag object from .launch_xml_parser
@@ -221,31 +228,19 @@ class LaunchInterpreter(object):
             scope.set_arg(name, value)
 
     def _node_tag(self, tag, scope, condition):
-        name = tag.resolve_name(scope).as_string()
-        # RosName.check_valid_name(name, ns=False, wildcards=True)
+        name = _rosname_string(tag.resolve_name(scope))
         clear = _literal(tag.resolve_clear_params(scope)) #!
-        ns = _string_or_None(tag.resolve_ns(scope))
-        pkg = _literal(tag.resolve_pkg(scope)) #!
-        exec = _literal(tag.resolve_type(scope)) #!
-        machine = _string_or_None(tag.resolve_machine(scope))
-        required = _literal(tag.resolve_required(scope)) #!
-        respawn = _literal(tag.resolve_respawn(scope)) #!
-        if respawn and required:
-            raise SchemaError.incompatible('required', 'respawn')
-        delay = _literal_or_None(tag.resolve_respawn_delay(scope))
-        args = _literal_or_None(tag.resolve_args(scope))
-        output = _literal_or_None(tag.resolve_output(scope))
-        cwd = _literal_or_None(tag.resolve_cwd(scope))
-        prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
-        new_scope = scope.new_node(name, ns, condition)
-        if clear:
-            if not name:
+        if not name:
+            if clear:
                 raise _empty_value('name')
+            exec = _literal(tag.resolve_type(scope)) #!
+            name = scope.get_anonymous_name(exec)
+        ns = _rosname_string(tag.resolve_ns(scope))
+        new_scope = scope.new_node(name, ns, condition) #!
+        if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
-        self._make_node(new_scope, pkg, exec, machine=machine, args=args,
-            required=required, respawn=respawn, respawn_delay=delay,
-            prefix=prefix, output=output, cwd=cwd)
+        self._make_node(tag, new_scope, condition)
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children
@@ -437,9 +432,21 @@ class LaunchInterpreter(object):
         cmd = _RosparamDelete(ns, '')
         self.rosparam_cmds.append(cmd)
 
-    def _make_node(self, scope, pkg, exec, machine=None, required=False,
-                   respawn=False, respawn_delay=None, args=None, prefix=None,
-                   output=None, cwd=None):
+    def _make_node(self, tag, scope, condition):
+        name = scope.private_ns
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exec = _literal(tag.resolve_type(scope)) #!
+        machine = tag.resolve_machine(scope)
+        required = tag.resolve_required(scope)
+        respawn = tag.resolve_respawn(scope)
+        if respawn.is_resolved and required.is_resolved:
+            if respawn.value and required.value:
+                raise SchemaError.incompatible('required', 'respawn')
+        delay = tag.resolve_respawn_delay(scope)
+        args = tag.resolve_args(scope)
+        output = tag.resolve_output(scope)
+        cwd = tag.resolve_cwd(scope)
+        prefix = tag.resolve_launch_prefix(scope)
         node = None
         self.nodes.append(node)
 
