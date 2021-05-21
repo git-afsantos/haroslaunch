@@ -424,7 +424,7 @@ class IncludeTag(BaseLaunchTag):
         return self._resolve_req_attr('file', scope)
 
     def resolve_ns(self, scope):
-        return self._resolve_attr('ns', scope)
+        return self._resolve_attr('ns', scope, no_empty=True)
 
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
@@ -665,7 +665,7 @@ class GroupTag(BaseLaunchTag):
         return self.attributes.get('clear_params', 'false')
 
     def resolve_ns(self, scope):
-        return self._resolve_attr('ns', scope)
+        return self._resolve_attr('ns', scope, no_empty=True)
 
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
@@ -869,7 +869,7 @@ class TestTag(BaseLaunchTag):
         return self._resolve_attr('args', scope)
 
     def resolve_ns(self, scope):
-        return self._resolve_attr('ns', scope)
+        return self._resolve_attr('ns', scope, no_empty=True)
 
     def resolve_clear_params(self, scope):
         result = self._resolve_attr('clear_params', scope, default='false')
