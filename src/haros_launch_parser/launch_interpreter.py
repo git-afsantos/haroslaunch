@@ -407,26 +407,19 @@ class LaunchInterpreter(object):
             user=user, pw=password, default=is_default, timeout=timeout)
 
     def _test_tag(self, tag, scope, condition):
-        test_name = tag.resolve_test_name(scope).as_string()
-        name = tag.resolve_name(scope).as_string()
-        # RosName.check_valid_name(name, ns=False, wildcards=True)
+        name = _rosname_string(tag.resolve_name(scope))
         clear = _literal(tag.resolve_clear_params(scope)) #!
-        if clear and not name:
-            raise _empty_value('name')
-        ns = _string_or_None(tag.resolve_ns(scope))
-        pkg = _literal(tag.resolve_pkg(scope)) #!
-        exec = _literal(tag.resolve_type(scope)) #!
-        args = _literal_or_None(tag.resolve_args(scope))
-        cwd = _literal_or_None(tag.resolve_cwd(scope))
-        prefix = _literal_or_None(tag.resolve_launch_prefix(scope))
-        retry = _literal_or_None(tag.resolve_retry(scope))
-        time_limit = _literal_or_None(tag.resolve_time_limit(scope))
-        new_scope = scope.new_node(name, ns, condition)
+        if not name:
+            if clear:
+                raise _empty_value('name')
+            exec = _literal(tag.resolve_type(scope)) #!
+            name = scope.get_anonymous_name(exec)
+        ns = _rosname_string(tag.resolve_ns(scope))
+        new_scope = scope.new_node(name, ns, condition) #!
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
-        self._make_test(new_scope, test_name, pkg, exec, args=args,
-            prefix=prefix, cwd=cwd, retry=retry, time_limit=time_limit)
+        self._make_test(tag, new_scope, condition)
 
     def _clear_params(self, ns):
         cmd = _RosparamDelete(ns, '')
@@ -453,11 +446,20 @@ class LaunchInterpreter(object):
             prefix=prefix, condition=condition, location=location)
         self.nodes.append(node)
 
-    def _make_test(self, scope, test_name, pkg, exec, args=None,
-                   prefix=None, cwd=None, retry=None, time_limit=None):
-        retry = retry or 0
-        time_limit = time_limit or 60
-        test = None
+    def _make_test(self, tag, scope, condition):
+        name = scope.private_ns
+        test_name = _literal(tag.resolve_test_name(scope)) #!
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exec = _literal(tag.resolve_type(scope)) #!
+        args = tag.resolve_args(scope)
+        cwd = tag.resolve_cwd(scope)
+        prefix = tag.resolve_launch_prefix(scope)
+        retry = tag.resolve_retry(scope)
+        time_limit = tag.resolve_time_limit(scope)
+        location = _launch_location(scope.filepath, tag)
+        test = RosTest(test_name, name, pkg, exec, args=args, cwd=cwd,
+            prefix=prefix, retries=retry, time_limit=time_limit,
+            condition=condition, location=location)
         self.nodes.append(test)
 
     def _make_params(self, scope):

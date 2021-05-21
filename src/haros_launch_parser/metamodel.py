@@ -11,7 +11,8 @@ from __builtins__ import range
 import re
 
 from .data_structs import (
-    ResolvedBool, ResolvedDouble, ResolvedString, SolverResult, SourceLocation,
+    ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, SolverResult,
+    SourceLocation,
 )
 from .logic import LOGIC_TRUE, LogicValue
 
@@ -157,7 +158,7 @@ class RosName(object):
 ###############################################################################
 
 class RosRuntimeEntity(object):
-    __slots__ = ('name',)
+    __slots__ = ('name',) # RosName
 
     def __init__(self, name):
         if isinstance(name, str):
@@ -223,6 +224,43 @@ class RosNode(RosResource):
         self.output = output or ResolvedString('log')
         self.working_dir = cwd or ResolvedString('ROS_HOME')
         self.launch_prefix = prefix
+
+
+class RosTest(RosResource):
+    __slots__ = RosResource.__slots__ + (
+        'test_name',    # string
+        'package',      # string
+        'executable',   # string
+        'args',         # SolverResult(TYPE_STRING)
+        'output',       # SolverResult(TYPE_STRING)
+        'working_dir',  # SolverResult(TYPE_STRING)
+        'launch_prefix',# None|SolverResult(TYPE_STRING)
+        'retries',      # SolverResult(TYPE_INT)
+        'time_limit',   # SolverResult(TYPE_DOUBLE)
+    )
+
+    def __init__(self, test_name, name, pkg, exec, system=None, args=None,
+                 cwd=None, prefix=None, retries=None, time_limit=None,
+                 condition=None, location=None):
+        super(RosTest, self).__init__(name, system=system, condition=condition,
+            location=location)
+        assert isinstance(test_name, str)
+        assert isinstance(pkg, str)
+        assert isinstance(exec, str)
+        assert args is None or isinstance(args, SolverResult)
+        assert cwd is None or isinstance(cwd, SolverResult)
+        assert prefix is None or isinstance(prefix, SolverResult)
+        assert retries is None or isinstance(retries, SolverResult)
+        assert time_limit is None or isinstance(time_limit, SolverResult)
+        self.test_name = test_name
+        self.package = pkg
+        self.executable = exec
+        self.args = args or ResolvedString('')
+        self.output = output or ResolvedString('log')
+        self.working_dir = cwd or ResolvedString('ROS_HOME')
+        self.launch_prefix = prefix
+        self.retries = retries or ResolvedInt(0)
+        self.time_limit = time_limit or ResolvedDouble(60.0)
 
 
 class RosParameter(RosResource):
