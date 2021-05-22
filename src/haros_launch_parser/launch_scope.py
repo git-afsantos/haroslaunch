@@ -167,7 +167,7 @@ class BaseScope(object):
         self.remaps[source].set(target, condition)
 
     def set_param(self, name, value, param_type, condition, location,
-                  reason=None, ns=None):
+                  ns=None):
         # check if forward param
         pass # FIXME
 

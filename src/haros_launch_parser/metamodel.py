@@ -264,7 +264,16 @@ class RosTest(RosResource):
 
 
 class RosParameter(RosResource):
-    __slots__ = RosResource.__slots__ + ()
+    __slots__ = RosResource.__slots__ + (
+        'param_type',   # string
+        'value'         # SolverResult(param_type)
+    )
 
-    def __init__(self, name, system=None, condition=None):
-        super(RosParameter, self).__init__(name, system=system, condition=condition)
+    def __init__(self, name, param_type, value, system=None, condition=None,
+            location=None):
+        super(RosParameter, self).__init__(name, system=system,
+            condition=condition, location=location)
+        assert isinstance(param_type, str)
+        assert value is None or isinstance(value, SolverResult)
+        self.param_type = param_type
+        self.value = value

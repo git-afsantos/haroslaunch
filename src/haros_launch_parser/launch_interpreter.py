@@ -9,13 +9,16 @@
 
 from collections import namedtuple
 
+from .data_structs import (
+    IfCondition, ResolvedString, ResolvedValue, SourceLocation, UnlessCondition
+)
 from .launch_scope import (
     ArgError, LaunchScope, NodeScope, GroupScope
 )
 from .launch_xml_parser import SchemaError
 from .logic import LOGIC_TRUE, LOGIC_FALSE, LogicVariable
 from .metamodel import (
-    IfCondition, RosName, SourceLocation, UnlessCondition
+    RosName, RosNode, RosParameter, RosTest
 )
 from .sub_parser import (
     TYPE_STRING, TYPE_YAML,
@@ -251,52 +254,55 @@ class LaunchInterpreter(object):
 
     def _param_tag(self, tag, scope, condition):
         assert not tag.children
-        name = tag.resolve_name(scope).as_string()
+        name = _rosname_string(tag.resolve_name(scope))
         param_type = _literal(tag.resolve_type(scope)) #!
-        value = reason = None
         if tag.is_value_param:
-            result = tag.resolve_value(scope)
-            if result.is_resolved:
-                value = result.value
-            else:
-                reason = SanityError.cannot_resolve(result.unknown)
+            value = tag.resolve_value(scope)
         elif tag.is_textfile_param:
-            result = tag.resolve_textfile(scope)
-            if result.is_resolved:
-                try:
-                    # system check - if tag.textfile_attr.startswith('$(find ')
-                    value = self.system.read_text_file(result.value)
-                except EnvironmentError as err:
-                    reason = err
-            else:
-                reason = SanityError.cannot_resolve(result.unknown)
+            value = self._param_tag_textfile(tag, scope)
         elif tag.is_binfile_param:
-            result = tag.resolve_binfile(scope)
-            if result.is_resolved:
-                try:
-                    # system check - if tag.binfile_attr.startswith('$(find ')
-                    value = self.system.read_binary_file(result.value)
-                except EnvironmentError as err:
-                    reason = err
-            else:
-                reason = SanityError.cannot_resolve(result.unknown)
+            value = self._param_tag_binfile(tag, scope)
         else:
             assert tag.is_command_param
-            result = tag.resolve_command(scope)
-            if result.is_resolved:
-                try:
-                    value = self.system.execute_command(result.value)
-                except EnvironmentError as err:
-                    reason = err
-            else:
-                reason = SanityError.cannot_resolve(result.unknown)
-        assert value is None or isinstance(value, basestring)
-        assert (reason is None) is (value is not None)
-        if value is not None:
-            value = convert_value(value, param_type=param_type) #!
+            value = self._param_tag_command(tag, scope)
+        if value.is_resolved:
+            assert isinstance(value.value, basestring)
+            value = convert_value(value.value, param_type=param_type) #!
+            value = ResolvedValue(value, param_type)
         location = _launch_location(scope.filepath, tag)
-        scope.set_param(name, value, param_type, condition, location,
-                        reason=reason)
+        scope.set_param(name, value, param_type, condition, location)
+
+    def _param_tag_textfile(self, tag, scope):
+        value = tag.resolve_textfile(scope)
+        if value.is_resolved:
+            try:
+                # system check - if tag.textfile_attr.startswith('$(find ')
+                value = self.system.read_text_file(value.value)
+                value = ResolvedString(value)
+            except EnvironmentError as err:
+                pass # FIXME: either unresolved with 'file' or reason
+        return value
+
+    def _param_tag_binfile(self, tag, scope):
+        value = tag.resolve_binfile(scope)
+        if value.is_resolved:
+            try:
+                # system check - if tag.binfile_attr.startswith('$(find ')
+                value = self.system.read_binary_file(value.value)
+                value = ResolvedString(value)
+            except EnvironmentError as err:
+                pass # FIXME: either unresolved with 'file' or reason
+        return value
+
+    def _param_tag_command(self, tag, scope):
+        value = tag.resolve_command(scope)
+        if value.is_resolved:
+            try:
+                value = self.system.execute_command(value.value)
+                value = ResolvedString(value)
+            except EnvironmentError as err:
+                pass # FIXME: either unresolved with 'cmd' or reason
+        return value
 
     def _rosparam_tag(self, tag, scope, condition):
         assert not tag.children
@@ -445,6 +451,7 @@ class LaunchInterpreter(object):
             respawn=respawn, delay=delay, args=args, output=output, cwd=cwd,
             prefix=prefix, condition=condition, location=location)
         self.nodes.append(node)
+        # TODO: get remaps and environment variables from scope
 
     def _make_test(self, tag, scope, condition):
         name = scope.private_ns
@@ -461,6 +468,7 @@ class LaunchInterpreter(object):
             prefix=prefix, retries=retry, time_limit=time_limit,
             condition=condition, location=location)
         self.nodes.append(test)
+        # TODO: get remaps and environment variables from scope
 
     def _make_params(self, scope):
         pass # TODO
