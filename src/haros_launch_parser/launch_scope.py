@@ -48,30 +48,34 @@ class ArgError(KeyError):
 
 class BaseScope(object):
     __slots__ = ('parent', 'system', 'dirpath', 'ns', 'args', 'arg_defaults',
-                 'condition', 'remaps', 'anonymous', 'node_env')
+                 'condition', 'remaps', 'anonymous', 'node_env', 'params',
+                 'fwd_params')
 
     def __init__(self, parent, system, dirpath, ns, args, arg_defaults,
-                 remaps, condition, anon, env):
-        # `parent` is the parent scope or None if root scope
-        # `system` is the API to the ROS/file system
-        # `dirpath` is a pathlib.Path
-        # `ns` is the current namespace for this scope
-        # `args` is the dict of currently defined/assigned args
-        # `arg_defaults` is the dict of declared args
-        # `remaps` is the dict of available remaps
-        # `anonymous` is the anonymous name cache
-        # `env` is the new environment variables assigned with <env>
-        # `condition` is the LogicValue affecting this scope
+                 remaps, condition, anon, env, fwd_params):
+        assert parent is None or isinstance(parent, BaseScope)
+        assert system is not None
+        assert dirpath is not None
+        assert isinstance(ns, RosName)
+        assert isinstance(args, dict)
+        assert isinstance(arg_defaults, dict)
+        assert isinstance(remaps, defaultdict)
+        assert isinstance(condition, LogicValue)
+        assert isinstance(anon, dict)
+        assert isinstance(env, defaultdict)
+        assert isinstance(fwd_params, list)
         self.parent = parent
         self.system = system
         self.dirpath = dirpath
         self.ns = ns
         self.args = args
         self.arg_defaults = arg_defaults
-        self.remaps = remaps
+        self.remaps = remaps # defaultdict(ConditionalData)
         self.condition = condition
         self.anonymous = anon
         self.node_env = env # defaultdict(ConditionalData)
+        self.params = [] # created within this scope
+        self.fwd_params = fwd_params
 
     @property
     def private_ns(self):
@@ -174,9 +178,23 @@ class BaseScope(object):
         assert isinstance(condition, LogicValue)
         assert isinstance(ns, str)
         assert location is None or isinstance(location, SourceLocation)
-        ns = ns or self.ns
-        # check if forward param
-        pass # FIXME
+        RosName.check_valid_name(name, no_ns=False, no_empty=True)
+        RosName.check_valid_name(ns, no_ns=False, no_empty=False)
+        if value.is_resolved and value.param_type != param_type:
+            raise TypeError('expected {!r}, got {!r}'.format(
+                param_type, value.param_type))
+        ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
+        ros_name = RosName(name, ns=ns, pns=self.private_ns)
+        if param_type == TYPE_YAML:
+            if value.is_resolved and isinstance(value.value, dict):
+                # unroll
+                pass
+        param = RosParameter(ros_name, param_type, value, condition=condition,
+            location=location)
+        if ros_name.is_private:
+            self.fwd_params.append(param)
+        else:
+            self.params.append(param)
 
     def new_group(self, ns, condition):
         assert isinstance(ns, str)
@@ -197,7 +215,7 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
-    def new_node(self, name, pkg, exe, condition, ns=None, machine=None,
+    def new_node(self, name, pkg, exe, condition, ns='', machine=None,
                  required=None, respawn=None, delay=None, args=None,
                  output=None, cwd=None, prefix=None, location=None):
         assert isinstance(name, str)
@@ -223,8 +241,8 @@ class BaseScope(object):
         return new
 
     def new_test(self, test_name, name, pkg, exe, condition,
-                 ns=None, args=None, cwd=None, prefix=None, retries=None,
-                 time_limit=None, location=None):
+                 ns='', args=None, cwd=None, prefix=None,
+                 retries=None, time_limit=None, location=None):
         assert isinstance(test_name, str)
         assert isinstance(name, str)
         assert isinstance(pkg, str)

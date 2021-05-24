@@ -10,8 +10,8 @@
 from collections import namedtuple
 
 from .data_structs import (
-    IfCondition, ResolvedString, ResolvedValue, SourceLocation, UnlessCondition,
-    UnresolvedCommandLine, UnresolvedFileContents
+    IfCondition, ResolvedString, ResolvedValue, ResolvedYaml, SourceLocation,
+    UnlessCondition, UnresolvedCommandLine, UnresolvedFileContents
 )
 from .launch_scope import (
     ArgError, LaunchScope, NodeScope, GroupScope
@@ -157,10 +157,6 @@ class LaunchInterpreter(object):
         args = dict(args) if args is not None else {}
         scope = LaunchScope(filepath, self.system, args=args)
         self._interpret_tree(tree, scope)
-        # parameters can only be added in the end, because of rosparam
-        # TODO
-        #for param in scope.parameters:
-        #    self.configuration.parameters.add(param)
 
     def interpret_many(self, filepaths, args=None):
         # filepaths is a list of pathlib Path
@@ -286,7 +282,7 @@ class LaunchInterpreter(object):
             value = convert_value(value.value, param_type=param_type) #!
             value = ResolvedValue(value, param_type)
         location = _launch_location(scope.filepath, tag)
-        scope.set_param(name, value, param_type, condition, location)
+        scope.set_param(name, value, param_type, condition, location=location)
 
     def _param_tag_textfile(self, tag, scope):
         value = tag.resolve_textfile(scope)
@@ -332,56 +328,53 @@ class LaunchInterpreter(object):
             self._rosparam_tag_dump(tag, scope, condition)
 
     def _rosparam_tag_load(self, tag, scope, condition):
-        value = reason = None
+        value = yaml_text = None
         filepath = tag.resolve_file(scope)
         if filepath is None: # not defined in XML
-            value = tag.text
+            yaml_text = tag.text
         elif filepath.is_resolved:
             try:
-                value = self.system.read_text_file(filepath.value)
+                yaml_text = self.system.read_text_file(filepath.value)
             except EnvironmentError as err:
-                reason = err
+                value = UnresolvedFileContents(filepath.value)
         else:
-            reason = SanityError.cannot_resolve(filepath.unknown)
-        if value is not None:
-            assert isinstance(value, basestring)
-            assert reason is None
+            value = filepath
+        if yaml_text is not None:
+            assert value is None
+            assert isinstance(yaml_text, basestring)
             subst_value = _literal(tag.resolve_subst_value(scope)) #!
             if subst_value:
-                value = resolve_to_yaml(value, scope) #!
-                if value.is_resolved:
-                    value = value.value if value.value is not None else {}
-                else:
-                    reason = SanityError.cannot_resolve(value.unknown)
-                    value = None
+                value = resolve_to_yaml(yaml_text, scope) #!
+                if value.is_resolved and value.value is None:
+                    value = ResolvedYaml({})
             else:
-                value = convert_to_yaml(value) #!
-                value = value if value is not None else {}
-        ns = _string_or_None(tag.resolve_ns(scope))
-        param = _string_or_None(tag.resolve_param(scope))
-        if value is None:
-            assert reason is not None
-        elif not param and type(value) != dict:
-            raise SchemaError.missing_attr('param')
+                value = convert_to_yaml(yaml_text) #!
+                value = ResolvedYaml(value if value is not None else {})
+        assert value is not None
+        ns = _rosname_string(tag.resolve_ns(scope))
+        param = _rosname_string(tag.resolve_param(scope))
+        if value.is_resolved:
+            if not param and type(value.value) != dict:
+                raise SchemaError.missing_attr('param')
+        location = _launch_location(scope.filepath, tag)
         scope.set_param(param, value, param_type, condition,
-                        _launch_location(scope.filepath, tag),
-                        reason=reason, ns=ns)
+            ns=ns, location=location)
 
     def _rosparam_tag_delete(self, tag, scope, condition):
         if condition.is_false:
             return
         if condition.is_variable:
             raise SanityError.conditional_tag(tag, condition)
-        ns = _string_or_None(tag.resolve_ns(scope))
-        param = _string_or_None(tag.resolve_param(scope))
+        ns = _rosname_string(tag.resolve_ns(scope))
+        param = _rosname_string(tag.resolve_param(scope))
         cmd = _RosparamDelete(ns, param)
         self.rosparam_cmds.append(cmd)
 
     def _rosparam_tag_dump(self, tag, scope, condition):
         if condition.is_false:
             return
-        ns = _string_or_None(tag.resolve_ns(scope))
-        param = _string_or_None(tag.resolve_param(scope))
+        ns = _rosname_string(tag.resolve_ns(scope))
+        param = _rosname_string(tag.resolve_param(scope))
         filepath = _literal(tag.resolve_file(scope)) #!
         cmd = _RosparamDump(filepath, ns, param, condition)
         self.rosparam_cmds.append(cmd)
@@ -458,7 +451,8 @@ class LaunchInterpreter(object):
         self.rosparam_cmds.append(cmd)
 
     def _make_params(self, scope):
-        pass # TODO
+        for param in scope.parameters:
+            self.parameters.append(param)
 
     def _fail(self, tag, scope, err):
         msg = str(err) or type(err).__name__
