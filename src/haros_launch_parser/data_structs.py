@@ -105,6 +105,14 @@ def UnresolvedValue(parts, param_type):
     assert len(unknown) > 0
     return SolverResult(parts, param_type, False, unknown)
 
+def UnresolvedFileContents(filepath):
+    unknown = UnknownValue('file', (filepath,), filepath)
+    return SolverResult([unknown], TYPE_STRING, False, (unknown,))
+
+def UnresolvedCommandLine(cmd_string):
+    unknown = UnknownValue('cmd', (cmd_string,), cmd_string)
+    return SolverResult([unknown], TYPE_STRING, False, (unknown,))
+
 
 ###############################################################################
 # Conditional Elements

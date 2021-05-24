@@ -10,7 +10,8 @@
 from collections import namedtuple
 
 from .data_structs import (
-    IfCondition, ResolvedString, ResolvedValue, SourceLocation, UnlessCondition
+    IfCondition, ResolvedString, ResolvedValue, SourceLocation, UnlessCondition,
+    UnresolvedCommandLine, UnresolvedFileContents
 )
 from .launch_scope import (
     ArgError, LaunchScope, NodeScope, GroupScope
@@ -280,7 +281,7 @@ class LaunchInterpreter(object):
                 value = self.system.read_text_file(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
-                pass # FIXME: either unresolved with 'file' or reason
+                value = UnresolvedFileContents(value.value)
         return value
 
     def _param_tag_binfile(self, tag, scope):
@@ -291,7 +292,7 @@ class LaunchInterpreter(object):
                 value = self.system.read_binary_file(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
-                pass # FIXME: either unresolved with 'file' or reason
+                value = UnresolvedFileContents(value.value)
         return value
 
     def _param_tag_command(self, tag, scope):
@@ -301,7 +302,7 @@ class LaunchInterpreter(object):
                 value = self.system.execute_command(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
-                pass # FIXME: either unresolved with 'cmd' or reason
+                value = UnresolvedCommandLine(value.value)
         return value
 
     def _rosparam_tag(self, tag, scope, condition):
