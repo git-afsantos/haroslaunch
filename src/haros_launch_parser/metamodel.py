@@ -34,8 +34,10 @@ class RosName(object):
         # does not accept empty own names if `no_empty`
         if name is None:
             raise ValueError('invalid ROS name: ' + name)
-        if no_empty and not name:
-            raise ValueError('ROS name cannot be empty')
+        if not name:
+            if no_empty:
+                raise ValueError('ROS name cannot be empty')
+            return
         if no_ns:
             m = self._NAME_CHARS.match(name)
             if not m or m.group(0) != name:
@@ -58,6 +60,8 @@ class RosName(object):
 
     @staticmethod
     def resolve(name, ns='/', pns=''):
+        if not name:
+            return ns
         if name.startswith('~'):
             if pns.endswith('/'):
                 return pns + name[1:]
@@ -177,9 +181,6 @@ class RosResource(RosRuntimeEntity):
 
     def __init__(self, name, system=None, condition=None, location=None):
         super(RosResource, self).__init__(name)
-        assert system is None or isinstance(system, str)
-        assert condition is None or isinstance(condition, LogicValue)
-        assert location is None or isinstance(location, SourceLocation)
         self.system = system
         self.condition = condition or LOGIC_TRUE
         self.traceability = location
@@ -199,21 +200,11 @@ class RosNode(RosResource):
         'launch_prefix',# None|SolverResult(TYPE_STRING)
     )
 
-    def __init__(self, name, pkg, exec, system=None, args=None, machine=None,
+    def __init__(self, name, pkg, exe, system=None, args=None, machine=None,
                  required=None, respawn=None, delay=None, output=None, cwd=None,
                  prefix=None, condition=None, location=None):
         super(RosNode, self).__init__(name, system=system, condition=condition,
             location=location)
-        assert isinstance(pkg, str)
-        assert isinstance(exec, str)
-        assert machine is None or isinstance(machine, SolverResult)
-        assert required is None or isinstance(required, SolverResult)
-        assert respawn is None or isinstance(respawn, SolverResult)
-        assert delay is None or isinstance(delay, SolverResult)
-        assert args is None or isinstance(args, SolverResult)
-        assert output is None or isinstance(output, SolverResult)
-        assert cwd is None or isinstance(cwd, SolverResult)
-        assert prefix is None or isinstance(prefix, SolverResult)
         self.package = pkg
         self.executable = exec
         self.machine = machine
@@ -224,6 +215,10 @@ class RosNode(RosResource):
         self.output = output or ResolvedString('log')
         self.working_dir = cwd or ResolvedString('ROS_HOME')
         self.launch_prefix = prefix
+
+    @property
+    def is_test_node(self):
+        return False
 
 
 class RosTest(RosResource):
@@ -239,19 +234,11 @@ class RosTest(RosResource):
         'time_limit',   # SolverResult(TYPE_DOUBLE)
     )
 
-    def __init__(self, test_name, name, pkg, exec, system=None, args=None,
+    def __init__(self, test_name, name, pkg, exe, system=None, args=None,
                  cwd=None, prefix=None, retries=None, time_limit=None,
                  condition=None, location=None):
         super(RosTest, self).__init__(name, system=system, condition=condition,
             location=location)
-        assert isinstance(test_name, str)
-        assert isinstance(pkg, str)
-        assert isinstance(exec, str)
-        assert args is None or isinstance(args, SolverResult)
-        assert cwd is None or isinstance(cwd, SolverResult)
-        assert prefix is None or isinstance(prefix, SolverResult)
-        assert retries is None or isinstance(retries, SolverResult)
-        assert time_limit is None or isinstance(time_limit, SolverResult)
         self.test_name = test_name
         self.package = pkg
         self.executable = exec
@@ -261,6 +248,10 @@ class RosTest(RosResource):
         self.launch_prefix = prefix
         self.retries = retries or ResolvedInt(0)
         self.time_limit = time_limit or ResolvedDouble(60.0)
+
+    @property
+    def is_test_node(self):
+        return True
 
 
 class RosParameter(RosResource):
@@ -273,7 +264,5 @@ class RosParameter(RosResource):
             location=None):
         super(RosParameter, self).__init__(name, system=system,
             condition=condition, location=location)
-        assert isinstance(param_type, str)
-        assert value is None or isinstance(value, SolverResult)
         self.param_type = param_type
         self.value = value

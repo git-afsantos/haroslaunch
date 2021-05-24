@@ -166,7 +166,15 @@ class BaseScope(object):
         target = RosName.resolve(to_name, ns=self.ns, pns=self.private_ns)
         self.remaps[source].set(target, condition)
 
-    def set_param(self, name, value, param_type, condition, location, ns=None):
+    def set_param(self, name, value, param_type, condition,
+                  ns='', location=None):
+        assert isinstance(name, str)
+        assert value is None or isinstance(value, SolverResult)
+        assert isinstance(param_type, str)
+        assert isinstance(condition, LogicValue)
+        assert isinstance(ns, str)
+        assert location is None or isinstance(location, SourceLocation)
+        ns = ns or self.ns
         # check if forward param
         pass # FIXME
 
@@ -189,12 +197,50 @@ class BaseScope(object):
         new._fwd_params = list(self._fwd_params) # FIXME
         return new
 
-    def new_node(self, name, ns, condition):
+    def new_node(self, name, pkg, exe, condition, ns=None, machine=None,
+                 required=None, respawn=None, delay=None, args=None,
+                 output=None, cwd=None, prefix=None, location=None):
         assert isinstance(name, str)
-        assert isinstance(ns, str)
+        assert isinstance(pkg, str)
+        assert isinstance(exe, str)
         assert isinstance(condition, LogicValue)
+        assert ns is None or isinstance(ns, str)
+        assert machine is None or isinstance(machine, SolverResult)
+        assert required is None or isinstance(required, SolverResult)
+        assert respawn is None or isinstance(respawn, SolverResult)
+        assert delay is None or isinstance(delay, SolverResult)
+        assert args is None or isinstance(args, SolverResult)
+        assert output is None or isinstance(output, SolverResult)
+        assert cwd is None or isinstance(cwd, SolverResult)
+        assert prefix is None or isinstance(prefix, SolverResult)
+        assert location is None or isinstance(location, SourceLocation)
         RosName.check_valid_name(name, no_ns=True, no_empty=True)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
+        # TODO: get remaps and environment variables from scope
+        node = RosNode(name, pkg, exe, machine=machine, required=required,
+            respawn=respawn, delay=delay, args=args, output=output, cwd=cwd,
+            prefix=prefix, condition=condition, location=location)
+        return new
+
+    def new_test(self, test_name, name, pkg, exe, condition,
+                 ns=None, args=None, cwd=None, prefix=None, retries=None,
+                 time_limit=None, location=None):
+        assert isinstance(test_name, str)
+        assert isinstance(name, str)
+        assert isinstance(pkg, str)
+        assert isinstance(exe, str)
+        assert isinstance(condition, LogicValue)
+        assert ns is None or isinstance(ns, str)
+        assert args is None or isinstance(args, SolverResult)
+        assert cwd is None or isinstance(cwd, SolverResult)
+        assert prefix is None or isinstance(prefix, SolverResult)
+        assert retries is None or isinstance(retries, SolverResult)
+        assert time_limit is None or isinstance(time_limit, SolverResult)
+        assert location is None or isinstance(location, SourceLocation)
+        # TODO: get remaps and environment variables from scope
+        test = RosTest(test_name, name, pkg, exe, args=args, cwd=cwd,
+            prefix=prefix, retries=retry, time_limit=time_limit,
+            condition=condition, location=location)
         return new
 
     def new_include(self, filepath, ns, condition, pass_all_args):

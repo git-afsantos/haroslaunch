@@ -233,18 +233,33 @@ class LaunchInterpreter(object):
 
     def _node_tag(self, tag, scope, condition):
         name = _rosname_string(tag.resolve_name(scope))
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exe = _literal(tag.resolve_type(scope)) #!
         clear = _literal(tag.resolve_clear_params(scope)) #!
         if not name:
             if clear:
                 raise _empty_value('name')
-            exec = _literal(tag.resolve_type(scope)) #!
-            name = scope.get_anonymous_name(exec)
+            name = scope.get_anonymous_name(exe)
         ns = _rosname_string(tag.resolve_ns(scope))
-        new_scope = scope.new_node(name, ns, condition) #!
+        machine = tag.resolve_machine(scope)
+        required = tag.resolve_required(scope)
+        respawn = tag.resolve_respawn(scope)
+        if respawn.is_resolved and required.is_resolved:
+            if respawn.value and required.value:
+                raise SchemaError.incompatible('required', 'respawn')
+        delay = tag.resolve_respawn_delay(scope)
+        args = tag.resolve_args(scope)
+        output = tag.resolve_output(scope)
+        cwd = tag.resolve_cwd(scope)
+        prefix = tag.resolve_launch_prefix(scope)
+        location = _launch_location(scope.filepath, tag)
+        new_scope = scope.new_node(name, ns, pkg, exe, condition, #!
+            machine=machine, required=required, respawn=respawn, delay=delay,
+            args=args, output=output, cwd=cwd, prefix=prefix, location=location)
         if clear:
             self._clear_params(new_scope.private_ns)
         self._interpret_tree(tag, new_scope)
-        self._make_node(tag, new_scope, condition)
+        self.nodes.append(new_scope.node)
 
     def _remap_tag(self, tag, scope, condition):
         assert not tag.children
@@ -414,62 +429,33 @@ class LaunchInterpreter(object):
             user=user, pw=password, default=is_default, timeout=timeout)
 
     def _test_tag(self, tag, scope, condition):
+        test_name = _literal(tag.resolve_test_name(scope)) #!
         name = _rosname_string(tag.resolve_name(scope))
+        pkg = _literal(tag.resolve_pkg(scope)) #!
+        exe = _literal(tag.resolve_type(scope)) #!
         clear = _literal(tag.resolve_clear_params(scope)) #!
         if not name:
             if clear:
                 raise _empty_value('name')
-            exec = _literal(tag.resolve_type(scope)) #!
-            name = scope.get_anonymous_name(exec)
+            name = scope.get_anonymous_name(exe)
         ns = _rosname_string(tag.resolve_ns(scope))
-        new_scope = scope.new_node(name, ns, condition) #!
-        if clear:
-            self._clear_params(new_scope.private_ns)
-        self._interpret_tree(tag, new_scope)
-        self._make_test(tag, new_scope, condition)
-
-    def _clear_params(self, ns):
-        cmd = _RosparamDelete(ns, '')
-        self.rosparam_cmds.append(cmd)
-
-    def _make_node(self, tag, scope, condition):
-        name = scope.private_ns
-        pkg = _literal(tag.resolve_pkg(scope)) #!
-        exec = _literal(tag.resolve_type(scope)) #!
-        machine = tag.resolve_machine(scope)
-        required = tag.resolve_required(scope)
-        respawn = tag.resolve_respawn(scope)
-        if respawn.is_resolved and required.is_resolved:
-            if respawn.value and required.value:
-                raise SchemaError.incompatible('required', 'respawn')
-        delay = tag.resolve_respawn_delay(scope)
-        args = tag.resolve_args(scope)
-        output = tag.resolve_output(scope)
-        cwd = tag.resolve_cwd(scope)
-        prefix = tag.resolve_launch_prefix(scope)
-        location = _launch_location(scope.filepath, tag)
-        node = RosNode(name, pkg, exec, machine=machine, required=required,
-            respawn=respawn, delay=delay, args=args, output=output, cwd=cwd,
-            prefix=prefix, condition=condition, location=location)
-        self.nodes.append(node)
-        # TODO: get remaps and environment variables from scope
-
-    def _make_test(self, tag, scope, condition):
-        name = scope.private_ns
-        test_name = _literal(tag.resolve_test_name(scope)) #!
-        pkg = _literal(tag.resolve_pkg(scope)) #!
-        exec = _literal(tag.resolve_type(scope)) #!
         args = tag.resolve_args(scope)
         cwd = tag.resolve_cwd(scope)
         prefix = tag.resolve_launch_prefix(scope)
         retry = tag.resolve_retry(scope)
         time_limit = tag.resolve_time_limit(scope)
         location = _launch_location(scope.filepath, tag)
-        test = RosTest(test_name, name, pkg, exec, args=args, cwd=cwd,
-            prefix=prefix, retries=retry, time_limit=time_limit,
-            condition=condition, location=location)
-        self.nodes.append(test)
-        # TODO: get remaps and environment variables from scope
+        new_scope = scope.new_test(test_name, name, ns, pkg, exe, condition, #!
+            args=args, cwd=cwd, prefix=prefix, retries=retry,
+            time_limit=time_limit, location=location)
+        if clear:
+            self._clear_params(new_scope.private_ns)
+        self._interpret_tree(tag, new_scope)
+        self.nodes.append(new_scope.node)
+
+    def _clear_params(self, ns):
+        cmd = _RosparamDelete(ns, '')
+        self.rosparam_cmds.append(cmd)
 
     def _make_params(self, scope):
         pass # TODO
