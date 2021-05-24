@@ -113,12 +113,6 @@ def _resolve_ns_clear_params(tag, scope):
     ns = _rosname_string(ns)
     return (ns, clear)
 
-def _result_to_rosname(result, scope):
-    ns = scope.ns
-    pns = scope.private_ns
-    name = '' if result is None else result.as_string(wildcard=RosName.WILDCARD)
-    return RosName.resolve(name, ns=ns, pns=pns)
-
 
 ###############################################################################
 # Launch Interpreter
@@ -253,7 +247,7 @@ class LaunchInterpreter(object):
             machine=machine, required=required, respawn=respawn, delay=delay,
             args=args, output=output, cwd=cwd, prefix=prefix, location=location)
         if clear:
-            self._clear_params(new_scope.private_ns)
+            self._clear_params(str(new_scope.private_ns))
         self._interpret_tree(tag, new_scope)
         self.nodes.append(new_scope.node)
 
@@ -442,7 +436,7 @@ class LaunchInterpreter(object):
             args=args, cwd=cwd, prefix=prefix, retries=retry,
             time_limit=time_limit, location=location)
         if clear:
-            self._clear_params(new_scope.private_ns)
+            self._clear_params(str(new_scope.private_ns))
         self._interpret_tree(tag, new_scope)
         self.nodes.append(new_scope.node)
 

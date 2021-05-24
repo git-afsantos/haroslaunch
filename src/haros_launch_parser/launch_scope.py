@@ -43,6 +43,59 @@ class ArgError(KeyError):
 
 
 ###############################################################################
+# Helper Functions
+###############################################################################
+
+def _yaml_param(name, ns, value, condition, location):
+    params = []
+    for key, literal in _unfold(name, value):
+        ros_name = RosName(key, ns=ns, pns='/roslaunch')
+        if isinstance(literal, bool):
+            v = ResolvedBool(literal)
+        elif isinstance(literal, int):
+            v = ResolvedInt(literal)
+        elif isinstance(literal, float):
+            v = ResolvedDouble(literal)
+        elif isinstance(literal, basestring):
+            v = ResolvedString(literal)
+        else:
+            v = ResolvedYaml(literal)
+        params.append(RosParameter(ros_name, v.param_type, v,
+            condition=condition, location=location))
+    return params
+
+        if independent or not private:
+            self._add_param(param, self.parameters)
+        else:
+            self._add_param(param, self._fwd_params)
+
+def _unfold(name, value):
+    result = []
+    stack = [('', name, value)]
+    while stack:
+        ns, key, value = stack.pop()
+        name = _ns_join(key, ns)
+        if isinstance(value, dict):
+            for subkey, subvalue in value.items():
+                stack.append((name, subkey, subvalue))
+        else:
+            # sometimes not independent: ~ns/p + a != a
+            yield (name, value)
+
+def _ns_join(name, ns):
+    '''Dumb version of name resolution to mimic ROS behaviour.'''
+    if name.startswith('~') or name.startswith('/'):
+        return name
+    if ns == '~':
+        return '~' + name
+    if not ns:
+        return name
+    if ns[-1] == '/':
+        return ns + name
+    return ns + '/' + name
+
+
+###############################################################################
 # Launch File Scopes
 ###############################################################################
 
@@ -180,21 +233,25 @@ class BaseScope(object):
         assert location is None or isinstance(location, SourceLocation)
         RosName.check_valid_name(name, no_ns=False, no_empty=True)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
-        if value.is_resolved and value.param_type != param_type:
-            raise TypeError('expected {!r}, got {!r}'.format(
-                param_type, value.param_type))
         ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
         ros_name = RosName(name, ns=ns, pns=self.private_ns)
         if param_type == TYPE_YAML:
             if value.is_resolved and isinstance(value.value, dict):
-                # unroll
-                pass
-        param = RosParameter(ros_name, param_type, value, condition=condition,
-            location=location)
-        if ros_name.is_private:
-            self.fwd_params.append(param)
+                params = _yaml_param(name, ns, value.value, condition, location)
+            else:
+                params = (RosParameter(ros_name, param_type, value,
+                    condition=condition, location=location),)
         else:
-            self.params.append(param)
+            if value.is_resolved and value.param_type != param_type:
+                raise TypeError('expected {!r}, got {!r}'.format(
+                    param_type, value.param_type))
+            params = (RosParameter(ros_name, param_type, value,
+                condition=condition, location=location),)
+        for param in params:
+            if param.name.is_private:
+                self.fwd_params.append(param)
+            else:
+                self.params.append(param)
 
     def new_group(self, ns, condition):
         assert isinstance(ns, str)
