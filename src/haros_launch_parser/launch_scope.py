@@ -294,7 +294,7 @@ class BaseScope(object):
         assert isinstance(pkg, str)
         assert isinstance(exe, str)
         assert isinstance(condition, LogicValue)
-        assert ns is None or isinstance(ns, str)
+        assert isinstance(ns, str)
         assert machine is None or isinstance(machine, SolverResult)
         assert required is None or isinstance(required, SolverResult)
         assert respawn is None or isinstance(respawn, SolverResult)
@@ -326,18 +326,25 @@ class BaseScope(object):
         assert isinstance(pkg, str)
         assert isinstance(exe, str)
         assert isinstance(condition, LogicValue)
-        assert ns is None or isinstance(ns, str)
+        assert isinstance(ns, str)
         assert args is None or isinstance(args, SolverResult)
         assert cwd is None or isinstance(cwd, SolverResult)
         assert prefix is None or isinstance(prefix, SolverResult)
         assert retries is None or isinstance(retries, SolverResult)
         assert time_limit is None or isinstance(time_limit, SolverResult)
         assert location is None or isinstance(location, SourceLocation)
-        # TODO: get remaps and environment variables from scope
-        test = RosTest(test_name, name, pkg, exe, args=args, cwd=cwd,
-            prefix=prefix, retries=retry, time_limit=time_limit,
-            condition=condition, location=location)
-        return new
+        RosName.check_valid_name(name, no_ns=True, no_empty=True)
+        RosName.check_valid_name(ns, no_ns=False, no_empty=False)
+        ns = RosName(ns, ns=self.ns, pns=self.private_ns)
+        ros_name = RosName(name, ns=ns)
+        remaps = VariantDict(self.remaps)
+        env = VariantDict(self.node_env)
+        condition = self.condition.join(condition).simplify()
+        test = RosTest(test_name, ros_name, pkg, exe, args=args, cwd=cwd,
+            prefix=prefix, retries=retry, time_limit=time_limit, remaps=remaps,
+            env=env, condition=condition, location=location)
+        return NodeScope(test, self, self.system, dict(self.args),
+            dict(self.arg_defaults), self.anonymous)
 
     def new_include(self, filepath, ns, condition, pass_all_args):
         assert isinstance(filepath, str)
