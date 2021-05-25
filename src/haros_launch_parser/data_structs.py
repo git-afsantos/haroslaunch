@@ -7,7 +7,7 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 
 from .logic import LOGIC_TRUE
 
@@ -185,3 +185,9 @@ class ConditionalData(object):
             values.append('({!r} if {})'.format(v, c))
         values.append(repr(self._base))
         return ' or '.join(values)
+
+
+def VariantDict(other=None):
+    if other is None:
+        return defaultdict(ConditionalData)
+    return defaultdict(ConditionalData, other)
