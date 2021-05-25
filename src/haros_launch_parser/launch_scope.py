@@ -9,6 +9,7 @@
 
 from collections import namedtuple
 import os
+from pathlib import Path
 import random
 import socket
 import sys
@@ -280,8 +281,9 @@ class BaseScope(object):
         assert isinstance(condition, LogicValue)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         ns = RosName(ns, self.ns, pns=self.private_ns)
+        condition = self.condition.join(condition).simplify()
         return GroupScope(self, self.system, ns, dict(self.args),
-            dict(self.arg_defaults), condition.join(self.condition),
+            dict(self.arg_defaults), condition,
             self.anonymous, VariantDict(self.remaps),
             VariantDict(self.node_env), list(self.fwd_params))
 
@@ -337,7 +339,16 @@ class BaseScope(object):
         assert isinstance(condition, LogicValue)
         assert isinstance(pass_all_args, bool)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
-        return new
+        ns = RosName(ns, self.ns, pns=self.private_ns)
+        filepath = Path(filepath)
+        condition = self.condition.join(condition).simplify()
+        scope = IncludeScope(filepath, self, self.system, ns,
+            dict(self.args), dict(self.arg_defaults), condition,
+            self.anonymous, VariantDict(self.remaps),
+            VariantDict(self.node_env), list(self.fwd_params))
+        if pass_all_args:
+            scope.passed_args.update(self.args)
+        return scope
 
 
 class LaunchScope(BaseScope):
@@ -345,7 +356,7 @@ class LaunchScope(BaseScope):
 
     def __init__(self, filepath, system, ns='/', args=None, anon=None,
                  remaps=None, node_env=None, fwd_params=None):
-        # `filepath` is a pathlib.Path
+        assert isinstance(filepath, Path)
         if isinstance(ns, basestring):
             ns = RosName(ns)
         args = args if args is not None else {}
@@ -418,13 +429,26 @@ class NodeScope(BaseScope):
 
 
 class IncludeScope(BaseScope):
-    __slots__ = BaseScope.__slots__ + ('_filepath',)
+    __slots__ = BaseScope.__slots__ + ('_filepath', 'passed_args')
 
     def __init__(self, filepath, parent, system, ns, args, arg_defaults,
                  condition, anon, remaps, node_env, fwd_params):
         super(IncludeScope, self).__init__(parent, system, ns, args,
             arg_defaults, condition, anon, remaps, node_env, fwd_params)
         self._filepath = filepath
+        self.passed_args = {}
+
+    def declare_arg(self, name, default=None):
+        assert isinstance(name, str)
+        assert default is None or isinstance(default, str)
+        pass # no point in declaring args here
+
+    def set_arg(self, name, value):
+        assert isinstance(name, str)
+        assert value is None or isinstance(value, str)
+        if name in self.passed_args:
+            raise ArgError.duplicate(name)
+        self.passed_args[name] = value
 
     def set_remap(self, from_name, to_name, condition):
         raise NotImplementedError()
@@ -455,7 +479,7 @@ class IncludeScope(BaseScope):
 
     def new_launch(self):
         return LaunchScope(self._filepath, self.system, ns=self.ns,
-            args=dict(self.args), anon=self.anonymous,
+            args=dict(self.passed_args), anon=self.anonymous,
             remaps=VariantDict(self.remaps),
             node_env=VariantDict(self.node_env),
             fwd_params=list(self.fwd_params))
