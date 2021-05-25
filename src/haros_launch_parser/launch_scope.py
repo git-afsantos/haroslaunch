@@ -7,7 +7,7 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 import os
 import random
 import socket
@@ -15,8 +15,8 @@ import sys
 
 import yaml
 
-from .data_structs import ConditionalData, SolverResult
-from .logic import LogicValue
+from .data_structs import ConditionalData, SolverResult, VariantDict
+from .logic import LOGIC_TRUE, LogicValue
 
 if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
 
@@ -46,10 +46,11 @@ class ArgError(KeyError):
 # Helper Functions
 ###############################################################################
 
-def _yaml_param(name, ns, value, condition, location):
+def _yaml_param(name, ns, pns, value, condition, location):
     params = []
     for key, literal in _unfold(name, value):
-        ros_name = RosName(key, ns=ns, pns='/roslaunch')
+        RosName.check_valid_name(key, no_ns=False, no_empty=True)
+        ros_name = RosName(key, ns=ns, pns=pns)
         if isinstance(literal, bool):
             v = ResolvedBool(literal)
         elif isinstance(literal, int):
@@ -63,11 +64,6 @@ def _yaml_param(name, ns, value, condition, location):
         params.append(RosParameter(ros_name, v.param_type, v,
             condition=condition, location=location))
     return params
-
-        if independent or not private:
-            self._add_param(param, self.parameters)
-        else:
-            self._add_param(param, self._fwd_params)
 
 def _unfold(name, value):
     result = []
@@ -100,34 +96,42 @@ def _ns_join(name, ns):
 ###############################################################################
 
 class BaseScope(object):
-    __slots__ = ('parent', 'system', 'dirpath', 'ns', 'args', 'arg_defaults',
-                 'condition', 'remaps', 'anonymous', 'node_env', 'params',
-                 'fwd_params')
+    __slots__ = (
+        'parent', # parent scope (subclass of `BaseScope`) or `None`
+        'system', # file system for queries
+        'ns', # `RosName` with the current namespace
+        'args', # dict of `<arg>` with a defined `value`
+        'arg_defaults', # dict of declared `<arg>` (with `default` or `None`)
+        'condition', # `LogicValue` for the condition affecting the scope
+        'anonymous', # cache dict of anonymous names
+        'remaps', # `VariantDict` with current `<remap>` rules
+        'node_env', # `VariantDict` with environment variables for nodes
+        'params', # list of parameters created within the scope
+        'fwd_params', # list of declared forward parameters
+    )
 
-    def __init__(self, parent, system, dirpath, ns, args, arg_defaults,
-                 remaps, condition, anon, env, fwd_params):
+    def __init__(self, parent, system, ns, args, arg_defaults,
+                 condition, anon, remaps, node_env, fwd_params):
         assert parent is None or isinstance(parent, BaseScope)
         assert system is not None
-        assert dirpath is not None
         assert isinstance(ns, RosName)
         assert isinstance(args, dict)
         assert isinstance(arg_defaults, dict)
-        assert isinstance(remaps, defaultdict)
         assert isinstance(condition, LogicValue)
         assert isinstance(anon, dict)
-        assert isinstance(env, defaultdict)
+        assert isinstance(remaps, dict)
+        assert isinstance(env, dict)
         assert isinstance(fwd_params, list)
         self.parent = parent
         self.system = system
-        self.dirpath = dirpath
         self.ns = ns
         self.args = args
         self.arg_defaults = arg_defaults
-        self.remaps = remaps # defaultdict(ConditionalData)
         self.condition = condition
         self.anonymous = anon
-        self.node_env = env # defaultdict(ConditionalData)
-        self.params = [] # created within this scope
+        self.remaps = remaps
+        self.node_env = env
+        self.params = []
         self.fwd_params = fwd_params
 
     @property
@@ -139,6 +143,11 @@ class BaseScope(object):
         if parent is None:
             return None
         return parent.filepath
+
+    @property
+    def dirpath(self):
+        # `pathlib.Path` to the dir containing launch file
+        return self.filepath.parent
 
     @property
     def is_present(self):
@@ -233,11 +242,15 @@ class BaseScope(object):
         assert location is None or isinstance(location, SourceLocation)
         RosName.check_valid_name(name, no_ns=False, no_empty=True)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
+        pns = '/roslaunch' if self.private_ns == self.ns else self.private_ns
         ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
         ros_name = RosName(name, ns=ns, pns=self.private_ns)
         if param_type == TYPE_YAML:
             if value.is_resolved and isinstance(value.value, dict):
-                params = _yaml_param(name, ns, value.value, condition, location)
+                # FIXME: sub names starting with '~' (within the dict)
+                #   are discarded with param tag
+                params = _yaml_param(name, ns, pns, value.value,
+                    condition, location)
             else:
                 params = (RosParameter(ros_name, param_type, value,
                     condition=condition, location=location),)
@@ -247,11 +260,20 @@ class BaseScope(object):
                     param_type, value.param_type))
             params = (RosParameter(ros_name, param_type, value,
                 condition=condition, location=location),)
+        self._set_ros_params(params)
+
+    def _set_ros_params(self, params):
         for param in params:
+            RosName.check_valid_name(str(param.name),
+                no_ns=False, no_empty=True)
             if param.name.is_private:
                 self.fwd_params.append(param)
             else:
                 self.params.append(param)
+
+    def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
+                    pw=None, default=False, timeout=None):
+        pass # TODO
 
     def new_group(self, ns, condition):
         assert isinstance(ns, str)
@@ -326,47 +348,126 @@ class BaseScope(object):
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         return new
 
-    def new_launch(self):
-        return new
-
-    def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
-                    pw=None, default=False, timeout=None):
-        pass # TODO
-
 
 class LaunchScope(BaseScope):
-    __slots__ = BaseScope.__slots__ + ('passed_args', '_filepath',)
+    __slots__ = BaseScope.__slots__ + ('_filepath',)
 
-    def __init__(self, filepath, system, ns='/', args=None):
+    def __init__(self, filepath, system, ns='/', args=None, anon=None,
+                 remaps=None, node_env=None, fwd_params=None):
         # `filepath` is a pathlib.Path
-        super().__init__(system, filepath.parent, ns, {})
-        self.passed_args = args if args is not None else {}
+        if isinstance(ns, basestring):
+            ns = RosName(ns)
+        args = args if args is not None else {}
+        anon = anon if anon is not None else {}
+        remaps = remaps if remaps is not None else VariantDict()
+        node_env = node_env if node_env is not None else VariantDict()
+        arg_defaults = {}
+        fwd_params = fwd_params if fwd_params is not None else []
+        super(LaunchScope, self).__init__(None, system, ns, args, arg_defaults,
+            LOGIC_TRUE, anon, remaps, node_env, fwd_params)
         self._filepath = filepath
 
     @property
     def filepath(self):
         return self._filepath
 
-    def get_arg(self, name):
-        pass # TODO override; look in passed args too
-
 
 class GroupScope(BaseScope):
-    pass
+    __slots__ = BaseScope.__slots__
 
 
 class NodeScope(BaseScope):
-    __slots__ = BaseScope.__slots__ + ('rosname',)
+    __slots__ = BaseScope.__slots__ + ('node',)
 
-    def __init__(self, name, system, dirname, ns, args):
-        self.rosname = RosName(name, ns=ns)
+    def __init__(self, node, parent, system, args, arg_defaults, anon):
+        assert isinstance(node, RosNode)
+        self.node = node
+        ns = node.namespace
+        condition = node.condition
+        remaps = node.remaps
+        env = node.environment
+        super(NodeScope, self).__init__(parent, system, ns, args, arg_defaults,
+            condition, anon, remaps, env, [])
 
     @property
     def private_ns(self):
-        return self.rosname
+        return self.node.name
+
+    def declare_arg(self, name, default=None):
+        raise NotImplementedError()
+
+    def set_arg(self, name, value):
+        raise NotImplementedError()
+
+    def _set_ros_params(self, params):
+        for param in params:
+            RosName.check_valid_name(str(param.name),
+                no_ns=False, no_empty=True)
+            self.params.append(param)
+
+    def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
+                    pw=None, default=False, timeout=None):
+        raise NotImplementedError()
 
     def new_group(self, ns, condition):
         raise NotImplementedError()
+
+    def new_node(self, name, pkg, exe, condition, ns='', machine=None,
+                 required=None, respawn=None, delay=None, args=None,
+                 output=None, cwd=None, prefix=None, location=None):
+        raise NotImplementedError()
+
+    def new_test(self, test_name, name, pkg, exe, condition,
+                 ns='', args=None, cwd=None, prefix=None,
+                 retries=None, time_limit=None, location=None):
+        raise NotImplementedError()
+
+    def new_include(self, filepath, ns, condition, pass_all_args):
+        raise NotImplementedError()
+
+
+class IncludeScope(BaseScope):
+    __slots__ = BaseScope.__slots__ + ('_filepath',)
+
+    def __init__(self, filepath, parent, system, ns, args, arg_defaults,
+                 condition, anon, remaps, node_env, fwd_params):
+        super(IncludeScope, self).__init__(parent, system, ns, args,
+            arg_defaults, condition, anon, remaps, node_env, fwd_params)
+        self._filepath = filepath
+
+    def set_remap(self, from_name, to_name, condition):
+        raise NotImplementedError()
+
+    def set_param(self, name, value, param_type, condition,
+                  ns='', location=None):
+        raise NotImplementedError()
+
+    def add_machine(self, name, address, ssh_port, env_loader=None, user=None,
+                    pw=None, default=False, timeout=None):
+        raise NotImplementedError()
+
+    def new_group(self, ns, condition):
+        raise NotImplementedError()
+
+    def new_node(self, name, pkg, exe, condition, ns='', machine=None,
+                 required=None, respawn=None, delay=None, args=None,
+                 output=None, cwd=None, prefix=None, location=None):
+        raise NotImplementedError()
+
+    def new_test(self, test_name, name, pkg, exe, condition,
+                 ns='', args=None, cwd=None, prefix=None,
+                 retries=None, time_limit=None, location=None):
+        raise NotImplementedError()
+
+    def new_include(self, filepath, ns, condition, pass_all_args):
+        raise NotImplementedError()
+
+    def new_launch(self):
+        return LaunchScope(self._filepath, self.system, ns=self.ns,
+            args=dict(self.args), anon=self.anonymous,
+            remaps=VariantDict(self.remaps),
+            node_env=VariantDict(self.node_env),
+            fwd_params=list(self.fwd_params))
 
 
 
