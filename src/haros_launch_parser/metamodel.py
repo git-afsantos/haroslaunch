@@ -154,6 +154,40 @@ class RosName(object):
 # Runtime Entities
 ###############################################################################
 
+class RosMachine(object):
+    __slots__ = (
+        'name',         # string
+        'address',      # string URI
+        'is_assignable',# bool
+        'env_loader',   # SolverResult(TYPE_STRING)
+        'ssh_port',     # SolverResult(TYPE_INT)
+        'user',         # None|SolverResult(TYPE_STRING)
+        'password',     # None|SolverResult(TYPE_STRING)
+        'timeout',      # SolverResult(TYPE_DOUBLE)
+    )
+
+    def __init__(self, name, address, is_assignable=True, env_loader=None,
+                 ssh_port=None, user=None, pw=None, timeout=None):
+        self.name = name
+        self.address = address
+        self.is_assignable = is_assignable
+        self.env_loader = env_loader
+        self.ssh_port = ssh_port or ResolvedInt(22)
+        self.user = user
+        self.password = pw
+        self.timeout = timeout or ResolvedDouble(10.0)
+
+    def __eq__(self, other):
+        if not isinstance(other, RosMachine):
+            return False
+        return (self.name == other.name and self.address == other.address
+                and self.is_assignable is other.is_assignable
+                and self.env_loader == other.env_loader
+                and self.ssh_port == other.ssh_port
+                and self.user == other.user and self.password == other.password
+                and self.timeout == other.timeout)
+
+
 class RosRuntimeEntity(object):
     __slots__ = ('name',) # RosName
 
