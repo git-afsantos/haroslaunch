@@ -386,6 +386,7 @@ class LaunchInterpreter(object):
         assert tree.tag == 'launch'
         tree.check_schema() #!
         self._interpret_tree(tree, new_scope)
+        # TODO: RLException: unused args [arg1, arg2] for include of ...
 
     def _group_tag(self, tag, scope, condition):
         ns, clear = _resolve_ns_clear_params(tag, scope) #!
