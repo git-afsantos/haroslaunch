@@ -306,11 +306,17 @@ class BaseScope(object):
         assert location is None or isinstance(location, SourceLocation)
         RosName.check_valid_name(name, no_ns=True, no_empty=True)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
-        # TODO: get remaps and environment variables from scope
-        node = RosNode(name, pkg, exe, machine=machine, required=required,
-            respawn=respawn, delay=delay, args=args, output=output, cwd=cwd,
-            prefix=prefix, condition=condition, location=location)
-        return new
+        ns = RosName(ns, ns=self.ns, pns=self.private_ns)
+        ros_name = RosName(name, ns=ns)
+        remaps = VariantDict(self.remaps)
+        env = VariantDict(self.node_env)
+        condition = self.condition.join(condition).simplify()
+        node = RosNode(ros_name, pkg, exe, args=args, machine=machine,
+            required=required, respawn=respawn, delay=delay, output=output,
+            cwd=cwd, prefix=prefix, remaps=remaps, env=env, condition=condition,
+            location=location)
+        return NodeScope(node, self, self.system, dict(self.args),
+            dict(self.arg_defaults), self.anonymous)
 
     def new_test(self, test_name, name, pkg, exe, condition,
                  ns='', args=None, cwd=None, prefix=None,
