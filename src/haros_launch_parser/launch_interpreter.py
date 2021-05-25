@@ -14,7 +14,7 @@ from .data_structs import (
     UnlessCondition, UnresolvedCommandLine, UnresolvedFileContents
 )
 from .launch_scope import (
-    ArgError, LaunchScope, NodeScope, GroupScope
+    ArgError, LaunchScope, MachineError, NodeScope, GroupScope
 )
 from .launch_xml_parser import SchemaError
 from .logic import LOGIC_TRUE, LOGIC_FALSE, LogicVariable
@@ -197,8 +197,8 @@ class LaunchInterpreter(object):
                     self._test_tag(tag, scope, condition)
                 else:
                     self._fail(tag, scope, 'unknown tag: ' + str(tag))
-            except (SchemaError, SubstitutionError,
-                    ValueError, ArgError, SanityError) as err:
+            except (SchemaError, SubstitutionError, ValueError,
+                    ArgError, MachineError, SanityError) as err:
                 self._fail(tag, scope, err)
         self._make_params(scope)
 
@@ -407,14 +407,21 @@ class LaunchInterpreter(object):
         assert not tag.children
         name = _literal(tag.resolve_name(scope)) #!
         address = _literal(tag.resolve_address(scope)) #!
-        env_loader = _string_or_None(tag.resolve_env_loader(scope))
-        ssh_port = _literal_or_None(tag.resolve_ssh_port(scope))
-        user = _string_or_None(tag.resolve_user(scope))
-        password = _literal_or_None(tag.resolve_password(scope))
-        is_default = _literal(tag.resolve_default(scope)) #!
-        timeout = _literal_or_None(tag.resolve_timeout(scope))
-        scope.add_machine(name, address, ssh_port, env_loader=env_loader,
-            user=user, pw=password, default=is_default, timeout=timeout)
+        is_default = _literal(tag.resolve_default(scope)).lower() #!
+        if is_default == 'never':
+            is_default = False
+            is_assignable = False
+        else:
+            is_default = convert_to_bool(is_default) #!
+            is_assignable = True
+        env_loader = tag.resolve_env_loader(scope)
+        ssh_port = tag.resolve_ssh_port(scope)
+        user = tag.resolve_user(scope)
+        password = tag.resolve_password(scope)
+        timeout = tag.resolve_timeout(scope)
+        scope.add_machine(name, address, is_default, is_assignable,
+            env_loader=env_loader, ssh_port=ssh_port,
+            user=user, pw=password, timeout=timeout)
 
     def _test_tag(self, tag, scope, condition):
         test_name = _literal(tag.resolve_test_name(scope)) #!
