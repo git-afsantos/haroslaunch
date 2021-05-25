@@ -12,7 +12,7 @@ import re
 
 from .data_structs import (
     ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, SolverResult,
-    SourceLocation,
+    SourceLocation, VariantDict,
 )
 from .logic import LOGIC_TRUE, LogicValue
 
@@ -33,7 +33,7 @@ class RosName(object):
         # does not accept '/' or '~' if `no_ns`
         # does not accept empty own names if `no_empty`
         if name is None:
-            raise ValueError('invalid ROS name: ' + name)
+            raise ValueError('ROS name cannot be `None`')
         if not name:
             if no_empty:
                 raise ValueError('ROS name cannot be empty')
@@ -72,16 +72,9 @@ class RosName(object):
             return ns + name
         return ns + '/' + name
 
-    @staticmethod
-    def transform(name, ns='/', pns='', remaps=None):
-        name = RosName.resolve(name, ns=ns, pns=pns)
-        if remaps:
-            return remaps.get(name, name)
-        return name
-
-    def __init__(self, name, ns='/', pns='', remaps=None):
-        name = name or ''
-        self._name = RosName.transform(name, ns=ns, pns=pns, remaps=remaps)
+    def __init__(self, name, ns='/', pns=''):
+        name = str(name or '')
+        self._name = RosName.resolve(name, ns=str(ns), pns=str(pns))
         # RosName.check_valid_name(self._name, no_ns=False, no_empty=False)
         self._given = name
         if self._name.endswith('/'):
@@ -185,6 +178,10 @@ class RosResource(RosRuntimeEntity):
         self.condition = condition or LOGIC_TRUE
         self.traceability = location
 
+    @property
+    def namespace(self):
+        return RosName(self.name.namespace)
+
 
 class RosNode(RosResource):
     __slots__ = RosResource.__slots__ + (
@@ -198,11 +195,14 @@ class RosNode(RosResource):
         'output',       # SolverResult(TYPE_STRING)
         'working_dir',  # SolverResult(TYPE_STRING)
         'launch_prefix',# None|SolverResult(TYPE_STRING)
+        'remaps',       # VariantDict(RosName)
+        'environment',  # VariantDict(string)
     )
 
     def __init__(self, name, pkg, exe, system=None, args=None, machine=None,
-                 required=None, respawn=None, delay=None, output=None, cwd=None,
-                 prefix=None, condition=None, location=None):
+                 required=None, respawn=None, delay=None, output=None,
+                 cwd=None, prefix=None, remaps=None, env=None,
+                 condition=None, location=None):
         super(RosNode, self).__init__(name, system=system, condition=condition,
             location=location)
         self.package = pkg
@@ -215,6 +215,8 @@ class RosNode(RosResource):
         self.output = output or ResolvedString('log')
         self.working_dir = cwd or ResolvedString('ROS_HOME')
         self.launch_prefix = prefix
+        self.remaps = remaps if remaps is not None else VariantDict()
+        self.environment = env if env is not None else VariantDict()
 
     @property
     def is_test_node(self):
@@ -232,11 +234,13 @@ class RosTest(RosResource):
         'launch_prefix',# None|SolverResult(TYPE_STRING)
         'retries',      # SolverResult(TYPE_INT)
         'time_limit',   # SolverResult(TYPE_DOUBLE)
+        'remaps',       # VariantDict(RosName)
+        'environment',  # VariantDict(string)
     )
 
     def __init__(self, test_name, name, pkg, exe, system=None, args=None,
                  cwd=None, prefix=None, retries=None, time_limit=None,
-                 condition=None, location=None):
+                 remaps=None, env=None, condition=None, location=None):
         super(RosTest, self).__init__(name, system=system, condition=condition,
             location=location)
         self.test_name = test_name
@@ -248,6 +252,8 @@ class RosTest(RosResource):
         self.launch_prefix = prefix
         self.retries = retries or ResolvedInt(0)
         self.time_limit = time_limit or ResolvedDouble(60.0)
+        self.remaps = remaps if remaps is not None else VariantDict()
+        self.environment = env if env is not None else VariantDict()
 
     @property
     def is_test_node(self):
