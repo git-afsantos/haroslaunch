@@ -712,7 +712,7 @@ class MachineTag(BaseLaunchTag):
         'address': TYPE_STRING,
         'ssh-port': TYPE_INT,
         'env-loader': TYPE_STRING,
-        'default': TYPE_BOOL,
+        'default': TYPE_STRING,
         'user': TYPE_STRING,
         'password': TYPE_STRING,
         'timeout': TYPE_DOUBLE
