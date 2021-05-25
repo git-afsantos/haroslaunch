@@ -279,20 +279,11 @@ class BaseScope(object):
         assert isinstance(ns, str)
         assert isinstance(condition, LogicValue)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
-        parent = self
-        system = self.system
-        dirpath = self.dirpath
-        ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
-        args = self.args
-        arg_defaults = self.arg_defaults
-        remaps = dict(self.remaps) # TODO: defaultdict ConditionalData
-        ifunless = condition
-        anon = self.anonymous
-        env = dict(self.node_env)
-        new = GroupScope(parent, system, dirpath, ns, args, arg_defaults,
-                 remaps, ifunless, anon, env)
-        new._fwd_params = list(self._fwd_params) # FIXME
-        return new
+        ns = RosName(ns, self.ns, pns=self.private_ns)
+        return GroupScope(self, self.system, ns, dict(self.args),
+            dict(self.arg_defaults), condition.join(self.condition),
+            self.anonymous, VariantDict(self.remaps),
+            VariantDict(self.node_env), list(self.fwd_params))
 
     def new_node(self, name, pkg, exe, condition, ns='', machine=None,
                  required=None, respawn=None, delay=None, args=None,
