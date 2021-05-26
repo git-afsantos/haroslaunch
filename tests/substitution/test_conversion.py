@@ -12,8 +12,8 @@ try:
 except ImportError:
     def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
         return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
-
 from string import printable
+import yaml
 
 from hypothesis import given
 from hypothesis.strategies import (
@@ -25,9 +25,6 @@ from haroslaunch.sub_parser import (
     convert_value, convert_to_bool, convert_to_int, convert_to_double,
     convert_to_yaml
 )
-
-if not hasattr(__builtins__, 'basestring'): # python 3
-    basestring = (str, bytes)
 
 ###############################################################################
 # Strategies
@@ -105,7 +102,7 @@ def test_convert_text_to_double(s):
 
 @given(json)
 def test_convert_json_to_yaml(data):
-    assert convert_to_yaml(str(data)) == data
+    assert convert_to_yaml(yaml.dump(data)) == data
 
 ###############################################################################
 # convert_value
