@@ -8,7 +8,10 @@
 ###############################################################################
 
 from __builtins__ import range
-import re
+try:
+    import regex as re
+except ImportError:
+    import re
 
 from .data_structs import (
     ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, VariantDict,
