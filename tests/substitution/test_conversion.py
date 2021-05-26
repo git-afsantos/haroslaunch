@@ -20,6 +20,9 @@ from haroslaunch.sub_parser import (
     convert_to_yaml
 )
 
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
+
 ###############################################################################
 # Strategies
 ###############################################################################
@@ -106,5 +109,5 @@ def test_convert_json_to_yaml(data):
 
 @given(json_literals)
 def test_convert_literal_to_value(v):
-    s = v if isinstance(v, str) else repr(v)
+    s = v if isinstance(v, basestring) else repr(v)
     assert convert_value(s) == v
