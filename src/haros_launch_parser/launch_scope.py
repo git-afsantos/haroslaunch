@@ -7,22 +7,21 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple
 import os
 from pathlib import Path
 import random
 import socket
 import sys
 
-import yaml
-
 from .data_structs import (
-    ConditionalData, ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString,
-    ResolvedYaml, SolverResult, VariantDict
+    ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, ResolvedYaml,
+    SolverResult, VariantDict,
 )
 from .logic import LOGIC_TRUE, LogicValue
+from .metamodel import RosMachine, RosName, RosNode, RosParameter, RosTest
 
-if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions

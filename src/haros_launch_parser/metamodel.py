@@ -11,10 +11,9 @@ from __builtins__ import range
 import re
 
 from .data_structs import (
-    ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, SolverResult,
-    SourceLocation, VariantDict,
+    ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, VariantDict,
 )
-from .logic import LOGIC_TRUE, LogicValue
+from .logic import LOGIC_TRUE
 
 ###############################################################################
 # ROS Names

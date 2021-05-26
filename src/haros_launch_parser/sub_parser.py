@@ -7,7 +7,6 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple
 import math
 import re
 

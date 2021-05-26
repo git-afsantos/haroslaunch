@@ -13,22 +13,17 @@ from .data_structs import (
     IfCondition, ResolvedString, ResolvedValue, ResolvedYaml, SourceLocation,
     UnlessCondition, UnresolvedCommandLine, UnresolvedFileContents
 )
-from .launch_scope import (
-    ArgError, LaunchScope, MachineError, NodeScope, GroupScope
-)
+from .launch_scope import ArgError, LaunchScope, MachineError
 from .launch_xml_parser import SchemaError
 from .logic import LOGIC_TRUE, LOGIC_FALSE, LogicVariable
-from .metamodel import (
-    RosName, RosNode, RosParameter, RosTest
-)
+from .metamodel import RosName
 from .sub_parser import (
-    TYPE_STRING, TYPE_YAML,
-    convert_to_bool, convert_to_yaml, convert_value,
-    resolve_to_yaml,
-    SubstitutionError, SubstitutionParser
+    convert_to_bool, convert_to_yaml, convert_value, resolve_to_yaml,
+    SubstitutionError,
 )
 
-if not hasattr(__builtins__, 'basestring'): basestring = (str, bytes)
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -132,6 +127,7 @@ class LaunchInterpreter(object):
         self.rosparam_cmds = []
         self.parameters = []
         self.nodes = []
+        self.machines = []
 
     def build(self):
         for cmd in self.rosparam_cmds:
@@ -151,6 +147,7 @@ class LaunchInterpreter(object):
         args = dict(args) if args is not None else {}
         scope = LaunchScope(filepath, self.system, args=args)
         self._interpret_tree(tree, scope)
+        self.machines.extend(scope.machines.values())
 
     def interpret_many(self, filepaths, args=None):
         # filepaths is a list of pathlib Path
