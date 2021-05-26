@@ -126,7 +126,7 @@ def test_convert_float_to_value(v):
         return # skip scientific notation
     assert isclose(convert_value(s), v)
 
-@given(text(printable))
+@given(text('abcdef'))
 def test_convert_text_to_value(v):
     v = str(v) # to silence python 2 errors
     assert convert_value(v) == v
