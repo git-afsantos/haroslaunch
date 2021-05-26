@@ -96,7 +96,7 @@ def test_convert_text_to_double(s):
 # convert_to_yaml
 ###############################################################################
 
-@given(json())
+@given(json)
 def test_convert_json_to_yaml(data):
     assert convert_to_yaml(str(data)) == data
 
@@ -104,6 +104,6 @@ def test_convert_json_to_yaml(data):
 # convert_value
 ###############################################################################
 
-@given(json_literals())
+@given(json_literals)
 def test_convert_literal_to_value(v):
     assert convert_value(str(v)) == v
