@@ -11,10 +11,8 @@ from collections import defaultdict, namedtuple
 
 from .logic import LOGIC_TRUE
 
-if hasattr(__builtins__, 'basestring'): # python 2
-    stringtypes = (basestring, unicode)
-else: # python 3
-    stringtypes = (str, bytes)
+if not hasattr(__builtins__, 'basestring'):
+    basestring = (str, bytes)
 
 ###############################################################################
 # Constants
@@ -64,7 +62,7 @@ SolverResult = namedtuple('SolverResult', (
 def _solver_result_as_string(self, wildcard=VAR_STRING):
     if self.is_resolved:
         return str(self.value)
-    return ''.join((x if isinstance(x, stringtypes) else wildcard)
+    return ''.join((x if isinstance(x, basestring) else wildcard)
                    for x in self.value)
 
 SolverResult.as_string = _solver_result_as_string
@@ -91,13 +89,13 @@ def ResolvedDouble(value):
     return SolverResult(value, TYPE_DOUBLE, True, None)
 
 def ResolvedString(value):
-    if not isinstance(value, stringtypes):
+    if not isinstance(value, basestring):
         raise TypeError('expected a string, got: ' + repr(value))
     return SolverResult(value, TYPE_STRING, True, None)
 
 def ResolvedYaml(value):
     if value is not None:
-        types = (dict, list, int, float, bool, stringtypes)
+        types = (dict, list, int, float, bool, basestring)
         if not isinstance(value, types):
             raise TypeError('expected a YAML object, got: ' + repr(value))
     return SolverResult(value, TYPE_YAML, True, None)
