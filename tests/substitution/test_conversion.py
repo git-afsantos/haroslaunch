@@ -27,7 +27,11 @@ if not hasattr(__builtins__, 'basestring'):
 # Strategies
 ###############################################################################
 
-json_literals = one_of(booleans(), floats(), text(printable))
+json_literals = one_of(
+    booleans(),
+    floats(allow_nan=False, allow_infinity=False),
+    text(printable)
+)
 
 json = recursive(
     (none() | booleans() | floats() | text(printable)),
