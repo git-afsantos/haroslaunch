@@ -128,4 +128,5 @@ def test_convert_float_to_value(v):
 
 @given(text(printable))
 def test_convert_text_to_value(v):
+    v = str(v) # to silence python 2 errors
     assert convert_value(v) == v
