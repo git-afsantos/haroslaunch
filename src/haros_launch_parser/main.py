@@ -11,6 +11,7 @@ from argparse import ArgumentParser
 import errno
 from sys import exit
 
+from .launch_interpreter import LaunchInterpreter, LaunchInterpreterError
 import .launch_xml_parser as LaunchXmlParser
 
 ###############################################################################
@@ -48,8 +49,8 @@ def _parse_launch_xml_from_file(filepath):
 ###############################################################################
 
 def parse_args(argv):
-    parser = ArgumentParser(prog = 'haroslaunch',
-                            description = 'ROS launch parser.')
+    parser = ArgumentParser(prog='haroslaunch',
+                            description='ROS launch parser.')
     return parser.parse_args(argv)
 
 
