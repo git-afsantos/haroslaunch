@@ -19,7 +19,7 @@ def read(fname):
         contents = f.read()
     return contents
 
-__version__ ,= re.findall('__version__ = "(.*)"',
+__version__ ,= re.findall("__version__ = '(.*)'",
     read('src/haroslaunch/__init__.py'))
 
 requirements = [r for r in read('requirements.txt').splitlines() if r]
