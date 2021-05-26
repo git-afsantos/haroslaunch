@@ -106,4 +106,4 @@ def test_convert_json_to_yaml(data):
 
 @given(json_literals)
 def test_convert_literal_to_value(v):
-    assert convert_value(str(v)) == v
+    assert convert_value(repr(v)) == v
