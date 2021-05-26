@@ -22,8 +22,10 @@ from .sub_parser import (
     SubstitutionError,
 )
 
-if not hasattr(__builtins__, 'basestring'):
-    basestring = (str, bytes)
+if hasattr(__builtins__, 'basestring'): # python 2
+    stringtypes = (basestring, unicode)
+else: # python 3
+    stringtypes = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -264,7 +266,7 @@ class LaunchInterpreter(object):
             assert tag.is_command_param
             value = self._param_tag_command(tag, scope)
         if value.is_resolved:
-            assert isinstance(value.value, basestring)
+            assert isinstance(value.value, stringtypes)
             value = convert_value(value.value, param_type=param_type) #!
             value = ResolvedValue(value, param_type)
         location = _launch_location(scope.filepath, tag)
@@ -327,7 +329,7 @@ class LaunchInterpreter(object):
             value = filepath
         if yaml_text is not None:
             assert value is None
-            assert isinstance(yaml_text, basestring)
+            assert isinstance(yaml_text, stringtypes)
             subst_value = _literal(tag.resolve_subst_value(scope)) #!
             if subst_value:
                 value = resolve_to_yaml(yaml_text, scope) #!

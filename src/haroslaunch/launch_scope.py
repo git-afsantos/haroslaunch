@@ -20,8 +20,10 @@ from .data_structs import (
 from .logic import LOGIC_TRUE, LogicValue
 from .metamodel import RosMachine, RosName, RosNode, RosParameter, RosTest
 
-if not hasattr(__builtins__, 'basestring'):
-    basestring = (str, bytes)
+if hasattr(__builtins__, 'basestring'): # python 2
+    stringtypes = (basestring, unicode)
+else: # python 3
+    stringtypes = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -74,7 +76,7 @@ def _yaml_param(name, ns, pns, value, condition, location):
             v = ResolvedInt(literal)
         elif isinstance(literal, float):
             v = ResolvedDouble(literal)
-        elif isinstance(literal, basestring):
+        elif isinstance(literal, stringtypes):
             v = ResolvedString(literal)
         else:
             v = ResolvedYaml(literal)
@@ -438,7 +440,7 @@ class LaunchScope(BaseScope):
                  remaps=None, node_env=None, fwd_params=None,
                  machines=None, def_machine=None):
         assert isinstance(filepath, Path)
-        if isinstance(ns, basestring):
+        if isinstance(ns, stringtypes):
             ns = RosName(ns)
         args = args if args is not None else {}
         anon = anon if anon is not None else {}
@@ -447,7 +449,7 @@ class LaunchScope(BaseScope):
         arg_defaults = {}
         fwd_params = fwd_params if fwd_params is not None else []
         machines = machines if machines is not None else VariantDict()
-        if isinstance(def_machine, basestring):
+        if isinstance(def_machine, stringtypes):
             def_machine = machines[def_machine]
         if def_machine is None or isinstance(def_machine, RosMachine):
             def_machine = [def_machine]
