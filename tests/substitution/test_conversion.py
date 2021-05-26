@@ -102,7 +102,7 @@ def test_convert_text_to_double(s):
 
 @given(json)
 def test_convert_json_to_yaml(data):
-    assert convert_to_yaml(yaml.dump(data)) == data
+    assert convert_to_yaml(yaml.dump(data, encoding=None)) == data
 
 ###############################################################################
 # convert_value
