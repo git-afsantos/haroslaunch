@@ -420,8 +420,8 @@ class SubstitutionParser(object):
 # as seen in roslaunch code, sans a few details
 # throws ValueError
 def convert_value(value, param_type=None):
+    assert isinstance(value, basestring)
     if param_type is None or param_type == TYPE_AUTO:
-        assert isinstance(value, basestring)
         # attempt numeric conversion
         try:
             if '.' in value:
