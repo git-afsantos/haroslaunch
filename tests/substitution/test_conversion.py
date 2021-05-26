@@ -7,6 +7,12 @@
 # Imports
 ###############################################################################
 
+try:
+    from math import isclose
+except ImportError:
+    def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+        return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
 from string import printable
 
 from hypothesis import given
@@ -114,6 +120,9 @@ def test_convert_json_to_yaml(data):
 @given(json_literals)
 def test_convert_literal_to_value(v):
     s = str(v)
-    if isinstance(v, float) and 'e' in s:
-        return # skip scientific notation
-    assert convert_value(s) == v
+    if isinstance(v, float):
+        if 'e' in s:
+            return # skip scientific notation
+        assert isclose(convert_value(s), v)
+    else:
+        assert convert_value(s) == v
