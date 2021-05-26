@@ -422,7 +422,7 @@ class SubstitutionParser(object):
 # as seen in roslaunch code, sans a few details
 # throws ValueError
 def convert_value(value, param_type=None):
-    assert isinstance(value, stringtypes)
+    assert isinstance(value, stringtypes), 'type: ' + str(type(value))
     if param_type is None or param_type == TYPE_AUTO:
         # attempt numeric conversion
         try:
