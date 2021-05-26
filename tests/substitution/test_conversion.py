@@ -31,7 +31,10 @@ from haroslaunch.sub_parser import (
 ###############################################################################
 
 json = recursive(
-    (none() | booleans() | floats() | text(printable)),
+    (none()
+        | booleans()
+        | floats(allow_nan=False, allow_infinity=False)
+        | text(printable)),
     (lambda children: lists(children, 1)
         | dictionaries(text(printable), children, min_size=1))
 )
