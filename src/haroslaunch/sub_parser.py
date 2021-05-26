@@ -13,14 +13,12 @@ try:
 except ImportError:
     import re
 
-import yaml
-
 from .data_structs import (
     TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STRING, TYPE_STR, TYPE_YAML,
     TYPE_AUTO,
     ResolvedValue, UnknownValue, UnresolvedValue
 )
-import .rosparam_yaml_monkey_patch
+from .rosparam_yaml_monkey_patch import yaml
 
 if not hasattr(__builtins__, 'basestring'):
     basestring = (str, bytes)
