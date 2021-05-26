@@ -81,7 +81,7 @@ def test_convert_text_to_int(s):
 
 @given(floats())
 def test_convert_float_to_double(f):
-    assert convert_to_double(str(f)) == f
+    assert isclose(convert_to_double(str(f)), f)
 
 @given(text(printable))
 def test_convert_text_to_double(s):
