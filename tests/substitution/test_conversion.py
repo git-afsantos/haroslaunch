@@ -33,12 +33,6 @@ if not hasattr(__builtins__, 'basestring'): # python 3
 # Strategies
 ###############################################################################
 
-json_literals = one_of(
-    booleans(),
-    floats(allow_nan=False, allow_infinity=False),
-    text(printable)
-)
-
 json = recursive(
     (none() | booleans() | floats() | text(printable)),
     (lambda children: lists(children, 1)
@@ -117,12 +111,21 @@ def test_convert_json_to_yaml(data):
 # convert_value
 ###############################################################################
 
-@given(json_literals)
-def test_convert_literal_to_value(v):
+@given(booleans())
+def test_convert_boolean_to_value(v):
+    assert convert_value(str(v)) is v
+
+@given(integers())
+def test_convert_integer_to_value(v):
+    assert convert_value(str(v)) == v
+
+@given(floats(allow_nan=False, allow_infinity=False))
+def test_convert_float_to_value(v):
     s = str(v)
-    if isinstance(v, float):
-        if 'e' in s:
-            return # skip scientific notation
-        assert isclose(convert_value(s), v)
-    else:
-        assert convert_value(s) == v
+    if 'e' in s:
+        return # skip scientific notation
+    assert isclose(convert_value(s), v)
+
+@given(text(printable))
+def test_convert_text_to_value(v):
+    assert convert_value(v) == v
