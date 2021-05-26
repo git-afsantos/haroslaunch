@@ -32,6 +32,8 @@ DEG_START = 'deg('
 RAD_PATTERN = re.compile(r'^rad\([^\)]*\)$')
 DEG_PATTERN = re.compile(r'^deg\([^\)]*\)$')
 
+TAG_UNICODE = u'tag:yaml.org,2002:python/unicode'
+
 ###############################################################################
 # Errors and Exceptions
 ###############################################################################
@@ -77,6 +79,13 @@ def construct_angle_degrees(loader, node):
         raise RosParamException('invalid degree value: ' + str(value))
 
 ###############################################################################
+# Unicode Strings
+###############################################################################
+
+def construct_unicode(loader, node):
+    return node.value
+
+###############################################################################
 # Monkey Patch
 ###############################################################################
 
@@ -96,3 +105,6 @@ yaml.add_constructor(YAML_DEG, construct_angle_degrees)
 yaml.SafeLoader.add_constructor(YAML_DEG, construct_angle_degrees)
 yaml.add_implicit_resolver(YAML_DEG, DEG_PATTERN, first=DEG_START)
 yaml.SafeLoader.add_implicit_resolver(YAML_DEG, DEG_PATTERN, first=DEG_START)
+
+# unicode
+yaml.SafeLoader.add_constructor(TAG_UNICODE, construct_unicode)
