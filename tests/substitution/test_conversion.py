@@ -79,7 +79,7 @@ def test_convert_text_to_int(s):
 # convert_to_double
 ###############################################################################
 
-@given(floats())
+@given(floats(allow_nan=False, allow_infinity=False))
 def test_convert_float_to_double(f):
     assert isclose(convert_to_double(str(f)), f)
 
