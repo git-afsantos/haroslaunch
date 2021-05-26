@@ -11,7 +11,8 @@ from collections import namedtuple
 
 from .data_structs import (
     IfCondition, ResolvedString, ResolvedValue, ResolvedYaml, SourceLocation,
-    UnlessCondition, UnresolvedCommandLine, UnresolvedFileContents
+    UnlessCondition, UnresolvedCommandLine, UnresolvedFileContents,
+    STRING_TYPES,
 )
 from .launch_scope import ArgError, LaunchScope, MachineError
 from .launch_xml_parser import SchemaError
@@ -21,9 +22,6 @@ from .sub_parser import (
     convert_to_bool, convert_to_yaml, convert_value, resolve_to_yaml,
     SubstitutionError,
 )
-
-if not hasattr(__builtins__, 'basestring'):
-    basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -264,7 +262,7 @@ class LaunchInterpreter(object):
             assert tag.is_command_param
             value = self._param_tag_command(tag, scope)
         if value.is_resolved:
-            assert isinstance(value.value, basestring)
+            assert isinstance(value.value, STRING_TYPES)
             value = convert_value(value.value, param_type=param_type) #!
             value = ResolvedValue(value, param_type)
         location = _launch_location(scope.filepath, tag)
@@ -327,7 +325,7 @@ class LaunchInterpreter(object):
             value = filepath
         if yaml_text is not None:
             assert value is None
-            assert isinstance(yaml_text, basestring)
+            assert isinstance(yaml_text, STRING_TYPES)
             subst_value = _literal(tag.resolve_subst_value(scope)) #!
             if subst_value:
                 value = resolve_to_yaml(yaml_text, scope) #!

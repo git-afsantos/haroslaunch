@@ -15,13 +15,10 @@ except ImportError:
 
 from .data_structs import (
     TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STRING, TYPE_STR, TYPE_YAML,
-    TYPE_AUTO,
-    ResolvedValue, UnknownValue, UnresolvedValue
+    TYPE_AUTO, STRING_TYPES,
+    ResolvedValue, UnknownValue, UnresolvedValue,
 )
 from .rosparam_yaml_monkey_patch import yaml
-
-if not hasattr(__builtins__, 'basestring'):
-    basestring = (str, bytes)
 
 ###############################################################################
 # Errors and Exceptions
@@ -316,7 +313,7 @@ class SubstitutionParser(object):
     ERROR_PATTERN = re.compile(r'\$\([^$()]*?\$[^$()]*?\)')
 
     def __init__(self, value, param_type=None):
-        if not isinstance(value, basestring):
+        if not isinstance(value, STRING_TYPES):
             raise TypeError('expected a string: {!r}'.format(value))
         self.text = value
         self.param_type = param_type
@@ -351,7 +348,7 @@ class SubstitutionParser(object):
         for cmd in self._commands:
             try:
                 value = cmd.resolve(scope) #!
-                assert isinstance(value, basestring)
+                assert isinstance(value, STRING_TYPES)
                 parts.append(value)
             except UnknownValueError as e:
                 unknown = True
@@ -420,7 +417,7 @@ class SubstitutionParser(object):
 # as seen in roslaunch code, sans a few details
 # throws ValueError
 def convert_value(value, param_type=None):
-    assert isinstance(value, basestring), 'type: ' + str(type(value))
+    assert isinstance(value, STRING_TYPES), 'type: ' + str(type(value))
     if param_type is None or param_type == TYPE_AUTO:
         # attempt numeric conversion
         try:
