@@ -66,11 +66,6 @@ def _literal_or_None(substitution_result):
         return None
     return substitution_result.value
 
-def _string_or_None(substitution_result):
-    if substitution_result is None:
-        return None
-    return substitution_result.as_string()
-
 def _rosname_string(substitution_result):
     if substitution_result is None:
         return ''
