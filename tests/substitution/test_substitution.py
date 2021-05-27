@@ -370,7 +370,7 @@ def test_dirname_command(scope, parts):
 def test_basic_eval_command():
     scope = MockScope({}, (), {})
     for expr, result in BASIC_EVAL_EXPR.items():
-        sp = SubstitutionParser.of_string(expr)
+        sp = SubstitutionParser.of_string('$(eval {})'.format(expr))
         r = sp.resolve(scope)
         assert r.is_resolved
         assert r.unknown is None
