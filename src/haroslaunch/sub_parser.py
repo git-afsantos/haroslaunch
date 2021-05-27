@@ -314,7 +314,7 @@ class SubstitutionParser(object):
     # `_commands`: internal list of commands for value resolution
 
     SUB_PATTERN = re.compile(r'\$\(([^$()]+?)\)')
-    ERROR_PATTERN = re.compile(r'\$\([^$()]*?\$[^$()]*?\)')
+    ERROR_PATTERN = re.compile(r'\$\([^\$\(\)]*?\$[^\)]*?\)')
 
     def __init__(self, value, param_type=None):
         if not isinstance(value, STRING_TYPES):
