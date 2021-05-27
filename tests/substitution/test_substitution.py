@@ -16,6 +16,7 @@ from hypothesis.strategies import (
     sampled_from, sets, text, tuples
 )
 
+from haroslaunch.data_structs import VAR_STRING
 from haroslaunch.sub_parser import SubstitutionError, SubstitutionParser
 
 ###############################################################################
@@ -126,7 +127,7 @@ def test_arg_command(scope, parts):
         if isinstance(part, tuple):
             arg = part[0]
             sin.append('$(arg {})'.format(arg))
-            sout.append(scope.args.get(arg, sin[-1]))
+            sout.append(scope.args.get(arg, VAR_STRING))
             args.append(arg)
         else:
             sin.append(part)
