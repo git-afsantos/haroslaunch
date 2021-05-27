@@ -139,15 +139,22 @@ def test_arg_command(scope, parts):
     r = sp.resolve(scope)
     # --------------------------------------
     assert r.as_string() == sout
-    assert r.is_resolved is (not args or sin != sout)
     if r.is_resolved:
         assert r.value == r.as_string()
         assert r.unknown is None
+        assert all(arg in scope.args for arg in args)
     else:
         assert isinstance(r.value, list)
         assert isinstance(r.unknown, tuple)
         assert all(u.cmd == 'arg' for u in r.unknown)
         assert all(len(u.args) == 1 for u in r.unknown)
-        assert all(u.args[0] in args for u in r.unknown)
-        assert all(u.args[0] not in scope.args for u in r.unknown)
-        assert all(u.text == '$(arg {})'.format(u.args[0]) for u in r.unknown)
+        assert len(args) >= 1
+        i = 0
+        for arg in args:
+            if arg in scope.args:
+                assert not any(u.args[0] == arg for u in r.unknown)
+            else:
+                assert r.unknown[i].args[0] == arg
+                assert r.unknown[i].text == '$(arg {})'.format(arg)
+                i += 1
+        assert len(r.unknown) == i, 'too many unknown values'
