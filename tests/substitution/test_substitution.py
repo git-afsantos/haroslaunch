@@ -121,6 +121,18 @@ def dirname_cmds():
     return lists(elems)
 
 
+BASIC_EVAL_EXPR = {
+    '1+1-2': '0',
+    'True': 'True',
+    'False': 'False',
+    '"abc"': '"abc"',
+    'dirname()': DIR_PATH_STR,
+    'anon(x)': 'anon_x',
+    'optenv(x)': '',
+    'optenv(x, "y")': 'y',
+}
+
+
 ###############################################################################
 # $(arg)
 ###############################################################################
@@ -353,12 +365,24 @@ def test_dirname_command(scope, parts):
 # $(eval)
 ###############################################################################
 
+# TODO: design more eval tests
+
+def test_basic_eval_command():
+    scope = MockScope({}, (), {})
+    for expr, result in BASIC_EVAL_EXPR.items():
+        sp = SubstitutionParser.of_string(expr)
+        r = sp.resolve(scope)
+        assert r.is_resolved
+        assert r.unknown is None
+        assert r.value == result
+
 
 ###############################################################################
 # General tests
 ###############################################################################
 
 def test_invalid_commands():
+    scope = MockScope({}, (), {})
     try:
         sp = SubstitutionParser.of_string('abc$(eval 1+1)')
         assert False, 'eval not at start'
@@ -371,6 +395,7 @@ def test_invalid_commands():
         assert True
     try:
         sp = SubstitutionParser.of_string('$(eval __file__)')
+        r = sp.resolve(scope)
         assert False, 'eval with double underscore'
     except SubstitutionError:
         assert True
