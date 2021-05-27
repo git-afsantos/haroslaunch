@@ -369,7 +369,7 @@ class SubstitutionParser(object):
         match = self.SUB_PATTERN.search(value)
         if not match:
             args = (value,)
-            return self.commands.append(DummyCommand(args))
+            return self._commands.append(DummyCommand(args))
         rest = value
         while match:
             parts = filter(bool, map(str.strip, match.group(1).split(None, 1)))
