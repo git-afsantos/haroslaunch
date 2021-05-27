@@ -243,4 +243,3 @@ def test_optenv_command(scope, parts):
     assert r.as_string() == sout
     assert r.value == r.as_string()
     assert r.unknown is None
-    assert all(arg[0] in scope.env for arg in args)
