@@ -365,7 +365,11 @@ class SubstitutionParser(object):
 
     def _build_command_list(self, value):
         self._commands = []
-        if value.startswith('$(eval') and value.endswith(')'):
+        if value.startswith('$(eval '):
+            if not value.endswith(')'):
+                raise SubstitutionError('eval must span the whole expression')
+            if '$(' in value[7:]:
+                raise SubstitutionError('"$" cannot appear within expression')
             args = (value[7:-1],)
             return self._commands.append(EvalCommand(args))
         if self.ERROR_PATTERN.search(value):
