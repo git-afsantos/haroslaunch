@@ -243,3 +243,49 @@ def test_optenv_command(scope, parts):
     assert r.as_string() == sout
     assert r.value == r.as_string()
     assert r.unknown is None
+
+
+###############################################################################
+# $(find)
+###############################################################################
+
+@given(mock_pkg_scopes(), find_cmds())
+def test_arg_command(scope, parts):
+    sin = []
+    sout = []
+    pkgs = []
+    for part in parts:
+        if isinstance(part, tuple):
+            name = part[0]
+            sin.append('$(find {})'.format(name))
+            sout.append(scope.pkgs.get(name, VAR_STRING))
+            pkgs.append(name)
+        else:
+            sin.append(part)
+            sout.append(part)
+    sin = ''.join(sin)
+    sout = ''.join(sout)
+    # --------------------------------------
+    sp = SubstitutionParser.of_string(sin)
+    r = sp.resolve(scope)
+    # --------------------------------------
+    assert r.as_string() == sout
+    if r.is_resolved:
+        assert r.value == r.as_string()
+        assert r.unknown is None
+        assert all(name in scope.pkgs for name in pkgs)
+    else:
+        assert isinstance(r.value, list)
+        assert isinstance(r.unknown, tuple)
+        assert all(u.cmd == 'find' for u in r.unknown)
+        assert all(len(u.args) == 1 for u in r.unknown)
+        assert len(pkgs) >= 1
+        i = 0
+        for name in pkgs:
+            if name in scope.pkgs:
+                assert not any(u.args[0] == name for u in r.unknown)
+            else:
+                assert r.unknown[i].args[0] == name
+                assert r.unknown[i].text == '$(find {})'.format(name)
+                i += 1
+        assert len(r.unknown) == i, 'too many unknown values'
