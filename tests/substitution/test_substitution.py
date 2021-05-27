@@ -107,7 +107,11 @@ def anon_cmds():
 
 env_cmds = arg_cmds
 
-optenv_cmds = arg_cmds
+def optenv_cmds():
+    elems = (text(PLAIN_CHARS)
+        | tuples(sampled_from(ARG_KEYS))
+        | tuples(sampled_from(ARG_KEYS), just('default')))
+    return lists(elems)
 
 def dirname_cmds():
     elems = just(()) | text(PLAIN_CHARS)
@@ -158,3 +162,85 @@ def test_arg_command(scope, parts):
                 assert r.unknown[i].text == '$(arg {})'.format(arg)
                 i += 1
         assert len(r.unknown) == i, 'too many unknown values'
+
+
+###############################################################################
+# $(env)
+###############################################################################
+
+@given(mock_env_scopes(), env_cmds())
+def test_env_command(scope, parts):
+    sin = []
+    sout = []
+    args = []
+    for part in parts:
+        if isinstance(part, tuple):
+            arg = part[0]
+            sin.append('$(env {})'.format(arg))
+            sout.append(scope.env.get(arg, VAR_STRING))
+            args.append(arg)
+        else:
+            sin.append(part)
+            sout.append(part)
+    sin = ''.join(sin)
+    sout = ''.join(sout)
+    # --------------------------------------
+    sp = SubstitutionParser.of_string(sin)
+    r = sp.resolve(scope)
+    # --------------------------------------
+    assert r.as_string() == sout
+    if r.is_resolved:
+        assert r.value == r.as_string()
+        assert r.unknown is None
+        assert all(arg in scope.env for arg in args)
+    else:
+        assert isinstance(r.value, list)
+        assert isinstance(r.unknown, tuple)
+        assert all(u.cmd == 'env' for u in r.unknown)
+        assert all(len(u.args) == 1 for u in r.unknown)
+        assert len(args) >= 1
+        i = 0
+        for arg in args:
+            if arg in scope.env:
+                assert not any(u.args[0] == arg for u in r.unknown)
+            else:
+                assert r.unknown[i].args[0] == arg
+                assert r.unknown[i].text == '$(env {})'.format(arg)
+                i += 1
+        assert len(r.unknown) == i, 'too many unknown values'
+
+
+###############################################################################
+# $(optenv)
+###############################################################################
+
+@given(mock_env_scopes(), optenv_cmds())
+def test_optenv_command(scope, parts):
+    sin = []
+    sout = []
+    args = []
+    for part in parts:
+        if isinstance(part, tuple):
+            arg = part[0]
+            if len(part) == 1:
+                sin.append('$(optenv {})'.format(arg))
+                sout.append(scope.env.get(arg, ''))
+            else:
+                d = part[1]
+                sin.append('$(optenv {} {})'.format(arg, d))
+                sout.append(scope.env.get(arg, d))
+            args.append(part)
+        else:
+            sin.append(part)
+            sout.append(part)
+    sin = ''.join(sin)
+    sout = ''.join(sout)
+    # --------------------------------------
+    sp = SubstitutionParser.of_string(sin)
+    r = sp.resolve(scope)
+    # --------------------------------------
+    assert r.is_resolved
+    assert r.as_string() == sout
+    assert r.value == r.as_string()
+    assert r.unknown is None
+    assert all(arg[0] in scope.env for arg in args)
