@@ -23,6 +23,9 @@ from haroslaunch.sub_parser import SubstitutionError, SubstitutionParser
 # Helper Classes
 ###############################################################################
 
+DIR_PATH = Path(__file__).parent.parent / 'launch'
+DIR_PATH_STR = str(DIR_PATH)
+
 class MockScope(object):
     __slots__ = ('args', 'pkgs', 'env')
 
@@ -35,7 +38,7 @@ class MockScope(object):
 
     @property
     def dirpath(self):
-        return Path(__file__).parent.parent / 'launch'
+        return DIR_PATH
 
     def get_arg(self, name):
         return self.args.get(name)
@@ -304,6 +307,33 @@ def test_anon_command(scope, parts):
             name = part[0]
             sin.append('$(anon {})'.format(name))
             sout.append('anon_' + name)
+        else:
+            sin.append(part)
+            sout.append(part)
+    sin = ''.join(sin)
+    sout = ''.join(sout)
+    # --------------------------------------
+    sp = SubstitutionParser.of_string(sin)
+    r = sp.resolve(scope)
+    # --------------------------------------
+    assert r.as_string() == sout
+    assert r.is_resolved
+    assert r.value == r.as_string()
+    assert r.unknown is None
+
+
+###############################################################################
+# $(anon)
+###############################################################################
+
+@given(mock_empty_scopes(), dirname_cmds())
+def test_dirname_command(scope, parts):
+    sin = []
+    sout = []
+    for part in parts:
+        if isinstance(part, tuple):
+            sin.append('$(dirname)')
+            sout.append(DIR_PATH_STR)
         else:
             sin.append(part)
             sout.append(part)
