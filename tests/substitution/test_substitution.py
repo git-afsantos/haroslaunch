@@ -125,7 +125,7 @@ BASIC_EVAL_EXPR = {
     '1+1-2': '0',
     'True': 'True',
     'False': 'False',
-    '"abc"': '"abc"',
+    '"abc"': 'abc',
     'dirname()': DIR_PATH_STR,
     'anon("x")': 'anon_x',
     'optenv("x")': '',
