@@ -7,13 +7,11 @@
 # Imports
 ###############################################################################
 
-from collections import namedtuple
 from pathlib import Path
 
 from hypothesis import given
 from hypothesis.strategies import (
-    booleans, builds, dictionaries, floats, from_regex, integers, just, lists, none, one_of, recursive,
-    sampled_from, sets, text, tuples
+    builds, dictionaries, just, lists, sampled_from, sets, text, tuples
 )
 
 from haroslaunch.data_structs import VAR_STRING
