@@ -347,3 +347,40 @@ def test_dirname_command(scope, parts):
     assert r.is_resolved
     assert r.value == r.as_string()
     assert r.unknown is None
+
+
+###############################################################################
+# $(eval)
+###############################################################################
+
+
+###############################################################################
+# General tests
+###############################################################################
+
+def test_invalid_commands():
+    try:
+        sp = SubstitutionParser.of_string('abc$(eval 1+1)')
+        assert False, 'eval not at start'
+    except SubstitutionError:
+        assert True
+    try:
+        sp = SubstitutionParser.of_string('$(eval 1+1)abc')
+        assert False, 'eval not until the end'
+    except SubstitutionError:
+        assert True
+    try:
+        sp = SubstitutionParser.of_string('$(eval __file__)')
+        assert False, 'eval with double underscore'
+    except SubstitutionError:
+        assert True
+    try:
+        sp = SubstitutionParser.of_string('$(env $(arg var))')
+        assert False, 'command within command'
+    except SubstitutionError:
+        assert True
+    try:
+        sp = SubstitutionParser.of_string('$(dummy a b)')
+        assert False, 'unknown command'
+    except SubstitutionError:
+        assert True
