@@ -127,9 +127,9 @@ BASIC_EVAL_EXPR = {
     'False': 'False',
     '"abc"': '"abc"',
     'dirname()': DIR_PATH_STR,
-    'anon(x)': 'anon_x',
-    'optenv(x)': '',
-    'optenv(x, "y")': 'y',
+    'anon("x")': 'anon_x',
+    'optenv("x")': '',
+    'optenv("x", "y")': 'y',
 }
 
 
@@ -372,9 +372,9 @@ def test_basic_eval_command():
     for expr, result in BASIC_EVAL_EXPR.items():
         sp = SubstitutionParser.of_string('$(eval {})'.format(expr))
         r = sp.resolve(scope)
-        assert r.is_resolved
-        assert r.unknown is None
-        assert r.value == result
+        assert r.is_resolved, str(r.value)
+        assert r.unknown is None, str(r.unknown)
+        assert r.value == result, '{!r} != {!r}'.format(r.value, result)
 
 
 ###############################################################################
