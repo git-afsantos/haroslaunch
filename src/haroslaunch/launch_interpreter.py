@@ -122,15 +122,6 @@ class LaunchInterpreter(object):
         self.nodes = []
         self.machines = []
 
-    def build(self):
-        for cmd in self.rosparam_cmds:
-            pass # delete|dump
-        for param in self.parameters:
-            pass # load
-        for node in self.nodes:
-            pass # launch
-        return
-
     def interpret(self, filepath, args=None):
         # filepath is a pathlib Path
         # log debug interpret(filepath, args=args)
