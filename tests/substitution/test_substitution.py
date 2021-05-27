@@ -250,7 +250,7 @@ def test_optenv_command(scope, parts):
 ###############################################################################
 
 @given(mock_pkg_scopes(), find_cmds())
-def test_arg_command(scope, parts):
+def test_find_command(scope, parts):
     sin = []
     sout = []
     pkgs = []
@@ -289,3 +289,31 @@ def test_arg_command(scope, parts):
                 assert r.unknown[i].text == '$(find {})'.format(name)
                 i += 1
         assert len(r.unknown) == i, 'too many unknown values'
+
+
+###############################################################################
+# $(anon)
+###############################################################################
+
+@given(mock_empty_scopes(), anon_cmds())
+def test_anon_command(scope, parts):
+    sin = []
+    sout = []
+    for part in parts:
+        if isinstance(part, tuple):
+            name = part[0]
+            sin.append('$(anon {})'.format(name))
+            sout.append('anon_' + name)
+        else:
+            sin.append(part)
+            sout.append(part)
+    sin = ''.join(sin)
+    sout = ''.join(sout)
+    # --------------------------------------
+    sp = SubstitutionParser.of_string(sin)
+    r = sp.resolve(scope)
+    # --------------------------------------
+    assert r.as_string() == sout
+    assert r.is_resolved
+    assert r.value == r.as_string()
+    assert r.unknown is None
