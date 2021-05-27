@@ -293,6 +293,10 @@ _COMMANDS = {
 # Substitution Parser
 ###############################################################################
 
+# Python 2 str vs unicode; not an issue in Python 3
+def _strip(s):
+    return s.strip()
+
 # Usage:
 #   value = '$(find robot_pkg)/$(arg robot_name)'
 #   value = SubstitutionParser(value, param_type='string')
@@ -372,7 +376,7 @@ class SubstitutionParser(object):
             return self._commands.append(DummyCommand(args))
         rest = value
         while match:
-            parts = filter(bool, map(str.strip, match.group(1).split(None, 1)))
+            parts = filter(bool, map(_strip, match.group(1).split(None, 1)))
             assert len(parts) == 1 or len(parts) == 2
             cmd_name = parts[0]
             arg_str = parts[1] if len(parts) == 2 else ''
@@ -387,7 +391,7 @@ class SubstitutionParser(object):
                 self._commands.append(DummyCommand(args))
             if arg_str:
                 assert cmd_name != 'eval'
-                args = filter(bool, map(str.strip, arg_str.split(None, 1)))
+                args = filter(bool, map(_strip, arg_str.split(None, 1)))
                 args = tuple(args)
             else:
                 args = ()
