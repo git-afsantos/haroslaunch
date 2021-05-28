@@ -279,13 +279,13 @@ def _test_valid_ast(ast):
     assert ast.tag == 'launch'
     assert not ast.text
     assert not ast.attributes
-    assert ast.line == 1 and ast.column == 1
+    assert ast.line >= 1 and ast.column >= 1
     # --------------------------------------
     json_ast = ast.to_JSON_object()
     assert json_ast['tag'] == 'launch'
     assert not json_ast['text']
     assert not json_ast['attributes']
-    assert json_ast['line'] == 1 and json_ast['column'] == 1
+    assert json_ast['line'] >= 1 and json_ast['column'] >= 1
     assert len(json_ast['children']) == len(ast.children)
     assert all(json_ast['children'][i]['tag'] == ast.children[i].tag
                for i in range(len(ast.children)))
