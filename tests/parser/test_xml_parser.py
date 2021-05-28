@@ -34,8 +34,12 @@ def var_names():
 def rl_booleans():
     return sampled_from(('1', '0', 'true', 'false'))
 
+def _any_tag_attr_filter(attributes):
+    return not ('if' in attributes and 'unless' in attributes)
+
 def _arg_attr_filter(attributes):
-    return not ('value' in attributes and 'default' in attributes)
+    return (_any_tag_attr_filter(attributes)
+            and not ('value' in attributes and 'default' in attributes))
 
 def arg_tags():
     tag = just('arg')
