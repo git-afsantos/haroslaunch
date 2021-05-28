@@ -272,12 +272,12 @@ class BaseScope(object):
         assert isinstance(condition, LogicValue)
         assert isinstance(ns, str)
         assert location is None or isinstance(location, SourceLocation)
-        RosName.check_valid_name(name, no_ns=False, no_empty=True)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         pns = '/roslaunch' if self.private_ns == self.ns else self.private_ns
         ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
         ros_name = RosName(name, ns=ns, pns=self.private_ns)
         if param_type == TYPE_YAML:
+            RosName.check_valid_name(name, no_ns=False, no_empty=False)
             if value.is_resolved and isinstance(value.value, dict):
                 # FIXME: sub names starting with '~' (within the dict)
                 #   are discarded with param tag
@@ -287,6 +287,7 @@ class BaseScope(object):
                 params = (RosParameter(ros_name, param_type, value,
                     condition=condition, location=location),)
         else:
+            RosName.check_valid_name(name, no_ns=False, no_empty=True)
             if value.is_resolved and value.param_type != param_type:
                 raise TypeError('expected {!r}, got {!r}'.format(
                     param_type, value.param_type))
