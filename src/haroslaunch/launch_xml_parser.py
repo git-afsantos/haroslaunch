@@ -196,6 +196,16 @@ class BaseLaunchTag(object):
             attrs.append('{}={!r}'.format(key, value))
         return '<{}>'.format(' '.join(attrs))
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)):
+            return False
+        return (self.tag == other.tag
+                and self.text == other.text
+                and self.line == other.line
+                and self.column == other.column
+                and self.attributes == other.attributes
+                and self.children == other.children)
+
 
 class LaunchTag(BaseLaunchTag):
     CHILDREN = ('node', 'include', 'remap', 'param', 'rosparam',
