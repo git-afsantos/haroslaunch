@@ -136,7 +136,7 @@ class BaseScope(object):
         assert isinstance(condition, LogicValue)
         assert isinstance(anon, dict)
         assert isinstance(remaps, dict)
-        assert isinstance(env, dict)
+        assert isinstance(node_env, dict)
         assert isinstance(fwd_params, list)
         assert isinstance(machines, dict)
         assert isinstance(def_machine, list) and len(def_machine) == 1
