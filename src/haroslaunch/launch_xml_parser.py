@@ -1001,16 +1001,3 @@ def from_JSON_object(data):
     for subdata in data['children']:
         ast.append(from_JSON_object(subdata))
     return ast
-
-
-if __name__ == '__main__':
-    import json
-    with open('Agrob_feup_nodered.launch', 'r') as fh:
-        text = fh.read()
-    ast = parse(text).to_JSON_object()
-    text1 = json.dumps(ast)
-    print(text1)
-    ast = from_JSON_object(ast)
-    ast = ast.to_JSON_object()
-    text2 = json.dumps(ast)
-    assert text1 == text2
