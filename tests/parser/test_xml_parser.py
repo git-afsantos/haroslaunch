@@ -32,7 +32,7 @@ def var_names():
     return text(NAME_CHAR, min_size=1).filter(_start_with_letter)
 
 def rl_booleans():
-    return sampled_from('1', '0', 'true', 'false')
+    return sampled_from(('1', '0', 'true', 'false'))
 
 def arg_tags():
     tag = just('arg')
