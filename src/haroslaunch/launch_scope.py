@@ -148,7 +148,7 @@ class BaseScope(object):
         self.condition = condition
         self.anonymous = anon
         self.remaps = remaps
-        self.node_env = env
+        self.node_env = node_env
         self.params = []
         self.fwd_params = fwd_params
         self.machines = machines
