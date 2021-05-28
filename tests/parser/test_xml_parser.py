@@ -8,6 +8,7 @@
 ###############################################################################
 
 from builtins import range
+from pathlib import Path
 
 from hypothesis import given
 from hypothesis.strategies import (
@@ -274,9 +275,7 @@ def test_json_unknown_tag():
 # Test Valid Launch XML
 ###############################################################################
 
-@given(launch_files())
-def test_parse_valid_xml(xml_code):
-    ast = parse(xml_code)
+def _test_valid_ast(ast):
     assert ast.tag == 'launch'
     assert not ast.text
     assert not ast.attributes
@@ -293,3 +292,17 @@ def test_parse_valid_xml(xml_code):
     # --------------------------------------
     other = from_JSON_object(json_ast)
     assert ast == other
+
+@given(launch_files())
+def test_parse_valid_xml(xml_code):
+    ast = parse(xml_code)
+    _test_valid_ast(ast)
+
+def test_parse_all_files():
+    launch = Path(__file__).parent.parent / 'launch'
+    for child in launch.iterdir():
+        if child.is_file():
+            fp = str(child)
+            if fp.endswith('.launch'):
+                ast = parse_from_file(fp)
+                _test_valid_ast(ast)
