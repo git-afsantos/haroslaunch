@@ -300,9 +300,8 @@ def test_parse_valid_xml(xml_code):
 
 def test_parse_all_files():
     launch = Path(__file__).parent.parent / 'launch'
-    for child in launch.iterdir():
-        if child.is_file():
-            fp = str(child)
-            if fp.endswith('.launch'):
+    for fp in launch.iterdir():
+        if fp.is_file():
+            if fp.suffix == '.launch':
                 ast = parse_from_file(fp)
                 _test_valid_ast(ast)
