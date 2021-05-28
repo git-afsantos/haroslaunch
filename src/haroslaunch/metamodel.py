@@ -62,6 +62,8 @@ class RosName(object):
 
     @staticmethod
     def resolve(name, ns='/', pns=''):
+        ns = str(ns)
+        pns = str(pns)
         if not name:
             return ns
         if name.startswith('~'):
@@ -76,7 +78,7 @@ class RosName(object):
 
     def __init__(self, name, ns='/', pns=''):
         name = str(name or '')
-        self._name = RosName.resolve(name, ns=str(ns), pns=str(pns))
+        self._name = RosName.resolve(name, ns=ns, pns=pns)
         # RosName.check_valid_name(self._name, no_ns=False, no_empty=False)
         self._given = name
         if self._name.endswith('/'):
