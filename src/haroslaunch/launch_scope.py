@@ -15,7 +15,7 @@ import sys
 
 from .data_structs import (
     ResolvedBool, ResolvedDouble, ResolvedInt, ResolvedString, ResolvedYaml,
-    SolverResult, SourceLocation, VariantDict, STRING_TYPES,
+    SolverResult, SourceLocation, VariantDict, STRING_TYPES, TYPE_YAML,
 )
 from .logic import LOGIC_TRUE, LogicValue
 from .metamodel import RosMachine, RosName, RosNode, RosParameter, RosTest
