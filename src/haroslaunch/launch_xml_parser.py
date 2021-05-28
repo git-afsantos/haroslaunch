@@ -953,7 +953,11 @@ TAGS = {
 
 def parse_from_file(filepath):
     if isinstance(filepath, Path):
-        xml_code = filepath.read_text()
+        try:
+            xml_code = filepath.read_text()
+        except AttributeError: # Python 2
+            with open(str(filepath), 'r') as fh:
+                xml_code = fh.read()
     else:
         with open(filepath, 'r') as fh:
             xml_code = fh.read()

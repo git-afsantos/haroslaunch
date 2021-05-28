@@ -57,7 +57,12 @@ class MockSystem(object):
         safe_dir = Path(__file__).parent
         if not safe_dir in filepath.parents:
             raise ValueError(filepath)
-        return filepath.read_text()
+        try:
+            return filepath.read_text()
+        except AttributeError: # Python 2
+            with open(str(filepath), 'r') as fh:
+                data = fh.read()
+            return data
 
     def read_binary_file(self, filepath):
         if isinstance(filepath, STRING_TYPES):
@@ -66,7 +71,12 @@ class MockSystem(object):
         safe_dir = Path(__file__).parent
         if not safe_dir in filepath.parents:
             raise ValueError(filepath)
-        return Binary(filepath.read_bytes()).data
+        try:
+            return Binary(filepath.read_bytes()).data
+        except AttributeError: # Python 2
+            with open(str(filepath), 'rb') as fh:
+                data = fh.read()
+            return Binary(data).data
 
     def execute_command(self, cmd):
         raise EnvironmentError(EACCES, cmd)
