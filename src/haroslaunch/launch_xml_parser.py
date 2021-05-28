@@ -14,8 +14,8 @@ sys.modules['_elementtree'] = None
 import xml.etree.ElementTree as ET
 
 from .sub_parser import (
-    TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STRING, TYPE_YAML, TYPE_AUTO,
-    SubstitutionParser
+    TYPE_BOOL, TYPE_INT, TYPE_DOUBLE, TYPE_STR, TYPE_STRING, TYPE_YAML,
+    TYPE_AUTO, SubstitutionParser,
 )
 
 ###############################################################################
