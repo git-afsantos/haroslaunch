@@ -7,7 +7,7 @@
 # Imports
 ###############################################################################
 
-from __builtins__ import range
+from builtins import range
 try:
     import regex as re
 except ImportError:
