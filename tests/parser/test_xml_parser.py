@@ -34,12 +34,13 @@ def var_names():
 def rl_booleans():
     return sampled_from(('1', '0', 'true', 'false'))
 
+def _arg_attr_filter(attributes):
+    return not ('value' in attributes and 'default' in attributes)
+
 def arg_tags():
     tag = just('arg')
     inner_text = just('')
-    req = {
-        'name': var_names(),
-    }
+    req = {'name': var_names(),}
     opt = {
         'if': rl_booleans(),
         'unless': rl_booleans(),
@@ -47,7 +48,7 @@ def arg_tags():
         'default': text(printable),
         'doc': text(printable),
     }
-    attributes = fixed_dictionaries(req, optional=opt)
+    attributes = fixed_dictionaries(req, optional=opt).filter(_arg_attr_filter)
     children = just(())
     return tuples(tag, inner_text, attributes, children)
 
