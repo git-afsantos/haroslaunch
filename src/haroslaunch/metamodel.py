@@ -242,7 +242,7 @@ class RosNode(RosResource):
         super(RosNode, self).__init__(name, system=system, condition=condition,
             location=location)
         self.package = pkg
-        self.executable = exec
+        self.executable = exe
         self.machine = machine
         self.is_required = required or ResolvedBool(False)
         self.respawns = respawn or ResolvedBool(False)
@@ -281,7 +281,7 @@ class RosTest(RosResource):
             location=location)
         self.test_name = test_name
         self.package = pkg
-        self.executable = exec
+        self.executable = exe
         self.args = args or ResolvedString('')
         self.output = output or ResolvedString('log')
         self.working_dir = cwd or ResolvedString('ROS_HOME')
