@@ -160,9 +160,9 @@ class BaseScope(object):
 
     @property
     def filepath(self):
-        if parent is None:
+        if self.parent is None:
             return None
-        return parent.filepath
+        return self.parent.filepath
 
     @property
     def dirpath(self):
