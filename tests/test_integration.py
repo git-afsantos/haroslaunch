@@ -41,7 +41,7 @@ class MockSystem(object):
         if isinstance(filepath, STRING_TYPES):
             filepath = Path(filepath)
         assert isinstance(filepath, Path)
-        launch = Path(__file__).parent.parent / 'launch'
+        launch = Path(__file__).parent / 'launch'
         if filepath.parent != launch:
             raise ValueError(filepath)
         ast = self.ast_cache.get(filepath)
