@@ -224,7 +224,7 @@ class LaunchInterpreter(object):
         cwd = tag.resolve_cwd(scope)
         prefix = tag.resolve_launch_prefix(scope)
         location = _launch_location(scope.filepath, tag)
-        new_scope = scope.new_node(name, ns, pkg, exe, condition, #!
+        new_scope = scope.new_node(name, pkg, exe, condition, ns=ns, #!
             machine=machine, required=required, respawn=respawn, delay=delay,
             args=args, output=output, cwd=cwd, prefix=prefix, location=location)
         if clear:
@@ -421,8 +421,8 @@ class LaunchInterpreter(object):
         retry = tag.resolve_retry(scope)
         time_limit = tag.resolve_time_limit(scope)
         location = _launch_location(scope.filepath, tag)
-        new_scope = scope.new_test(test_name, name, ns, pkg, exe, condition, #!
-            args=args, cwd=cwd, prefix=prefix, retries=retry,
+        new_scope = scope.new_test(test_name, name, pkg, exe, condition, #!
+            ns=ns, args=args, cwd=cwd, prefix=prefix, retries=retry,
             time_limit=time_limit, location=location)
         if clear:
             self._clear_params(str(new_scope.private_ns))
