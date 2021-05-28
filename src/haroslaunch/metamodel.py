@@ -41,22 +41,22 @@ class RosName(object):
                 raise ValueError('ROS name cannot be empty')
             return
         if no_ns:
-            m = self._NAME_CHARS.match(name)
+            m = RosName._NAME_CHARS.match(name)
             if not m or m.group(0) != name:
                 raise ValueError('invalid ROS name: ' + name)
         else:
             parts = name.split('/')
-            m = self._FIRST_PART.match(parts[0])
+            m = RosName._FIRST_PART.match(parts[0])
             if not m or m.group(0) != parts[0]:
                 raise ValueError('invalid ROS name: ' + name)
             for i in range(1, len(parts)-1):
-                m = self._NAME_CHARS.match(parts[i])
+                m = RosName._NAME_CHARS.match(parts[i])
                 if not m or m.group(0) != parts[i]:
                     raise ValueError('invalid ROS name: ' + name)
             if no_empty and not parts[-1]:
                 raise ValueError('ROS name cannot be empty or end with "/"')
             if len(parts) > 1 and parts[-1]:
-                m = self._NAME_CHARS.match(parts[-1])
+                m = RosName._NAME_CHARS.match(parts[-1])
                 if not m or m.group(0) != parts[-1]:
                     raise ValueError('invalid ROS name: ' + name)
 
