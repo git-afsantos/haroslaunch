@@ -434,7 +434,7 @@ class LaunchInterpreter(object):
         self.rosparam_cmds.append(cmd)
 
     def _make_params(self, scope):
-        for param in scope.parameters:
+        for param in scope.params:
             self.parameters.append(param)
 
     def _fail(self, tag, scope, err):
