@@ -332,7 +332,7 @@ class LaunchInterpreter(object):
             if not param and type(value.value) != dict:
                 raise SchemaError.missing_attr('param')
         location = _launch_location(scope.filepath, tag)
-        scope.set_param(param, value, param_type, condition,
+        scope.set_param(param, value, value.param_type, condition,
             ns=ns, location=location)
 
     def _rosparam_tag_delete(self, tag, scope, condition):
