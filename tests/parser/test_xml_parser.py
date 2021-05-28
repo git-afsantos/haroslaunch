@@ -11,7 +11,8 @@ from builtins import range
 
 from hypothesis import given
 from hypothesis.strategies import (
-    builds, fixed_dictionaries, just, lists, sampled_from, text, tuples
+    builds, fixed_dictionaries, integers, just, lists, sampled_from,
+    text, tuples
 )
 
 from haroslaunch.launch_xml_parser import (
@@ -34,6 +35,13 @@ def var_names():
 def rl_booleans():
     return sampled_from(('1', '0', 'true', 'false'))
 
+def rl_doubles():
+    return builds('{}.{}'.format, integers(min_value=0), integers(min_value=0))
+
+def rl_types():
+    return sampled_from(('bool', 'int', 'double', 'string', 'yaml'))
+
+
 def _any_tag_attr_filter(attributes):
     return not ('if' in attributes and 'unless' in attributes)
 
@@ -52,9 +60,122 @@ def arg_tags():
         'default': text(NORMAL_CHAR),
         'doc': text(NORMAL_CHAR),
     }
-    attributes = fixed_dictionaries(req, optional=opt).filter(_arg_attr_filter)
+    attrs = fixed_dictionaries(req, optional=opt).filter(_arg_attr_filter)
     children = just(())
-    return tuples(tag, inner_text, attributes, children)
+    return tuples(tag, inner_text, attrs, children)
+
+
+def node_tags():
+    tag = just('node')
+    inner_text = just('')
+    req = {
+        'name': var_names(),
+        'pkg': var_names(),
+        'type': var_names(),
+    }
+    opt = {
+        'if': rl_booleans(),
+        'unless': rl_booleans(),
+        'args': text(NORMAL_CHAR),
+        'machine': var_names(),
+        'respawn': rl_booleans(),
+        'respawn_delay': rl_doubles(),
+        'required': rl_booleans(),
+        'ns': var_names(),
+        'clear_params': rl_booleans(),
+        'output': sampled_from(('screen', 'log')),
+        'cwd': sampled_from(('ROS_HOME', 'node')),
+        'launch-prefix': text(NORMAL_CHAR),
+    }
+    attrs = fixed_dictionaries(req, optional=opt).filter(_any_tag_attr_filter)
+    children = lists(remap_tags() | param_tags() | rosparam_tags() | env_tags())
+    return tuples(tag, inner_text, attrs, children)
+
+
+def remap_tags():
+    tag = just('remap')
+    inner_text = just('')
+    req = {
+        'from': var_names(),
+        'to': var_names(),
+    }
+    opt = {
+        'if': rl_booleans(),
+        'unless': rl_booleans(),
+    }
+    attrs = fixed_dictionaries(req, optional=opt).filter(_any_tag_attr_filter)
+    children = just(())
+    return tuples(tag, inner_text, attrs, children)
+
+
+def _param_attr_filter(attributes):
+    if not _any_tag_attr_filter(attributes):
+        return False
+    p = [key for key in ('value', 'textfile', 'binfile', 'command')
+         if key in attributes]
+    return len(p) == 1
+
+def param_tags():
+    tag = just('param')
+    inner_text = just('')
+    req = {
+        'name': var_names(),
+    }
+    opt = {
+        'if': rl_booleans(),
+        'unless': rl_booleans(),
+        'value': text(NORMAL_CHAR),
+        'type': rl_types(),
+        'textfile': text(NORMAL_CHAR),
+        'binfile': text(NORMAL_CHAR),
+        'command': text(NORMAL_CHAR),
+    }
+    attrs = fixed_dictionaries(req, optional=opt).filter(_param_attr_filter)
+    children = just(())
+    return tuples(tag, inner_text, attrs, children)
+
+
+def _rosparam_attr_filter(attributes):
+    if not _any_tag_attr_filter(attributes):
+        return False
+    cmd = attributes.get('command', 'load')
+    if cmd == 'dump' and not 'file' in attributes:
+        return False
+    return (cmd != 'delete'
+            or ('param' in attributes and 'file' not in attributes))
+
+def rosparam_tags():
+    tag = just('rosparam')
+    inner_text = text(NORMAL_CHAR)
+    req = {}
+    opt = {
+        'if': rl_booleans(),
+        'unless': rl_booleans(),
+        'param': var_names(),
+        'command': sampled_from(('load', 'delete', 'dump')),
+        'file': text(NORMAL_CHAR),
+        'ns': var_names(),
+        'subst_value': rl_booleans(),
+    }
+    attrs = fixed_dictionaries(req, optional=opt).filter(_rosparam_attr_filter)
+    children = just(())
+    return tuples(tag, inner_text, attrs, children)
+
+
+def env_tags():
+    tag = just('env')
+    inner_text = just('')
+    req = {
+        'name': var_names(),
+        'value': text(NORMAL_CHAR),
+    }
+    opt = {
+        'if': rl_booleans(),
+        'unless': rl_booleans(),
+    }
+    attrs = fixed_dictionaries(req, optional=opt).filter(_any_tag_attr_filter)
+    children = just(())
+    return tuples(tag, inner_text, attrs, children)
 
 
 def launch_tags():
