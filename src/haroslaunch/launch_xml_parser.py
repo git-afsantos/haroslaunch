@@ -7,7 +7,7 @@
 # Imports
 ###############################################################################
 
-from __future__ import print_function
+from pathlib import Path
 import sys
 
 sys.modules['_elementtree'] = None
@@ -952,8 +952,11 @@ TAGS = {
 
 
 def parse_from_file(filepath):
-    with open(filepath, 'r') as fh:
-        xml_code = fh.read()
+    if isinstance(filepath, Path):
+        xml_code = filepath.read_text()
+    else:
+        with open(filepath, 'r') as fh:
+            xml_code = fh.read()
     return parse(xml_code)
 
 def parse(xml_text):
