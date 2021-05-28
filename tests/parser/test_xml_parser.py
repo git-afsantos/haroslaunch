@@ -8,7 +8,6 @@
 ###############################################################################
 
 from builtins import range
-from string import printable
 
 from hypothesis import given
 from hypothesis.strategies import (
@@ -24,6 +23,7 @@ from haroslaunch.launch_xml_parser import (
 ###############################################################################
 
 NAME_CHAR = 'abcdefghijklmnopqrstuvwxyz0123456789_'
+NORMAL_CHAR = NAME_CHAR + ' ()!#$%=?+-/*.,:;'
 
 def _start_with_letter(s):
     return s[0].isalpha()
@@ -44,9 +44,9 @@ def arg_tags():
     opt = {
         'if': rl_booleans(),
         'unless': rl_booleans(),
-        'value': text(printable),
-        'default': text(printable),
-        'doc': text(printable),
+        'value': text(NORMAL_CHAR),
+        'default': text(NORMAL_CHAR),
+        'doc': text(NORMAL_CHAR),
     }
     attributes = fixed_dictionaries(req, optional=opt).filter(_arg_attr_filter)
     children = just(())
