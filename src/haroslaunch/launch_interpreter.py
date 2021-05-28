@@ -297,7 +297,7 @@ class LaunchInterpreter(object):
         if command == 'load':
             self._rosparam_tag_load(tag, scope, condition)
         elif command == 'delete':
-            self._rosparam_tag_delete(tag, scope condition)
+            self._rosparam_tag_delete(tag, scope, condition)
         else:
             assert command == 'dump'
             self._rosparam_tag_dump(tag, scope, condition)
