@@ -94,7 +94,7 @@ def test_kobuki_minimal():
     assert not lfi.machines
     assert not lfi.rosparam_cmds
     assert len(lfi.nodes) == 3
-    assert len(lfi.parameters) > 0
+    assert len(lfi.parameters) == 34
     # Node 0 -------------------------------
     node = lfi.nodes[0]
     assert not node.is_test_node
@@ -217,8 +217,129 @@ def test_kobuki_safe_keyop():
     lfi.interpret(fp)
     assert not lfi.machines
     assert not lfi.rosparam_cmds
-    assert len(lfi.nodes) > 0
-    assert len(lfi.parameters) > 0
+    assert len(lfi.nodes) == 4
+    assert len(lfi.parameters) == 12
+    # Node 0 -------------------------------
+    node = lfi.nodes[0]
+    assert not node.is_test_node
+    assert node.name.own == 'cmd_vel_mux'
+    assert node.name.full == '/cmd_vel_mux'
+    assert node.system is None
+    assert node.condition.is_true
+    assert node.traceability.filepath.endswith('/kobuki_safe_keyop.launch')
+    assert node.traceability.line == 5
+    assert node.traceability.column == 3
+    assert node.package == 'nodelet'
+    assert node.executable == 'nodelet'
+    assert node.machine is None
+    assert node.is_required.value is False
+    assert node.respawns.value is False
+    assert node.respawn_delay.value == 0.0
+    assert node.args.value == 'load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager'
+    assert node.output.value == 'log'
+    assert node.working_dir.value == 'ROS_HOME'
+    assert node.launch_prefix is None
+    assert len(node.remaps) == 1
+    assert node.remaps['/cmd_vel_mux/output'].get_value() == '/mobile_base/commands/velocity'
+    assert len(node.environment) == 0
+    # Node 1 -------------------------------
+    node = lfi.nodes[1]
+    assert not node.is_test_node
+    assert node.name.own == 'kobuki_safety_controller'
+    assert node.name.full == '/kobuki_safety_controller'
+    assert node.system is None
+    assert node.condition.is_true
+    assert node.traceability.filepath.endswith('/kobuki_safe_keyop.launch')
+    assert node.traceability.line == 10
+    assert node.traceability.column == 3
+    assert node.package == 'nodelet'
+    assert node.executable == 'nodelet'
+    assert node.machine is None
+    assert node.is_required.value is False
+    assert node.respawns.value is False
+    assert node.respawn_delay.value == 0.0
+    assert node.args.value == 'load kobuki_safety_controller/SafetyControllerNodelet mobile_base_nodelet_manager'
+    assert node.output.value == 'log'
+    assert node.working_dir.value == 'ROS_HOME'
+    assert node.launch_prefix is None
+    assert len(node.remaps) == 4
+    assert node.remaps['/kobuki_safety_controller/cmd_vel'].get_value() == '/cmd_vel_mux/safety_controller'
+    assert node.remaps['/kobuki_safety_controller/events/bumper'].get_value() == '/mobile_base/events/bumper'
+    assert node.remaps['/kobuki_safety_controller/events/cliff'].get_value() == '/mobile_base/events/cliff'
+    assert node.remaps['/kobuki_safety_controller/events/wheel_drop'].get_value() == '/mobile_base/events/wheel_drop'
+    assert len(node.environment) == 0
+    # Node 2 -------------------------------
+    node = lfi.nodes[2]
+    assert not node.is_test_node
+    assert node.name.own == 'keyop_vel_smoother'
+    assert node.name.full == '/keyop_vel_smoother'
+    assert node.system is None
+    assert node.condition.is_true
+    assert node.traceability.filepath.endswith('/kobuki_safe_keyop.launch')
+    assert node.traceability.line == 17
+    assert node.traceability.column == 3
+    assert node.package == 'nodelet'
+    assert node.executable == 'nodelet'
+    assert node.machine is None
+    assert node.is_required.value is False
+    assert node.respawns.value is False
+    assert node.respawn_delay.value == 0.0
+    assert node.args.value == 'load yocs_velocity_smoother/VelocitySmootherNodelet mobile_base_nodelet_manager'
+    assert node.output.value == 'log'
+    assert node.working_dir.value == 'ROS_HOME'
+    assert node.launch_prefix is None
+    assert len(node.remaps) == 3
+    assert node.remaps['/keyop_vel_smoother/smooth_cmd_vel'].get_value() == '/cmd_vel_mux/keyboard_teleop'
+    assert node.remaps['/keyop_vel_smoother/odometry'].get_value() == '/odom'
+    assert node.remaps['/keyop_vel_smoother/robot_cmd_vel'].get_value() == '/mobile_base/commands/velocity'
+    assert len(node.environment) == 0
+    # Node 3 -------------------------------
+    node = lfi.nodes[3]
+    assert not node.is_test_node
+    assert node.name.own == 'keyop'
+    assert node.name.full == '/keyop'
+    assert node.system is None
+    assert node.condition.is_true
+    assert node.traceability.filepath.endswith('/kobuki_safe_keyop.launch')
+    assert node.traceability.line == 26
+    assert node.traceability.column == 3
+    assert node.package == 'kobuki_keyop'
+    assert node.executable == 'keyop'
+    assert node.machine is None
+    assert node.is_required.value is False
+    assert node.respawns.value is False
+    assert node.respawn_delay.value == 0.0
+    assert node.args.value == ''
+    assert node.output.value == 'screen'
+    assert node.working_dir.value == 'ROS_HOME'
+    assert node.launch_prefix is None
+    assert len(node.remaps) == 2
+    assert node.remaps['/keyop/motor_power'].get_value() == '/mobile_base/commands/motor_power'
+    assert node.remaps['/keyop/cmd_vel'].get_value() == '/keyop_vel_smoother/raw_cmd_vel'
+    assert len(node.environment) == 0
+    # Parameters ---------------------------
+    params = {
+        '/cmd_vel_mux/yaml_cfg_file': str(Path(__file__).parent / 'param' / 'keyop_mux.yaml'),
+        '/keyop_vel_smoother/speed_lim_v': 0.8,
+        '/keyop_vel_smoother/speed_lim_w': 5.4,
+        '/keyop_vel_smoother/accel_lim_v': 1.0,
+        '/keyop_vel_smoother/accel_lim_w': 7.0,
+        '/keyop_vel_smoother/frequency': 20.0,
+        '/keyop_vel_smoother/decel_factor': 1.0,
+        '/keyop/linear_vel_step': 0.05,
+        '/keyop/linear_vel_max': 1.5,
+        '/keyop/angular_vel_step': 0.33,
+        '/keyop/angular_vel_max': 6.6,
+        '/keyop/wait_for_connection_': True,
+    }
+    for p in lfi.parameters:
+        assert p.namespace.full.startswith(('/cmd_vel_mux', '/keyop'))
+        assert p.system is None
+        assert p.condition.is_true
+        assert p.traceability.filepath.endswith('/kobuki_safe_keyop.launch')
+        assert p.traceability.line in (6, 18, 29, 30, 31, 32, 33)
+        assert p.traceability.column == 5
+        assert p.value.value == params[p.name.full]
 
 
 def test_kobuki_minimal_safe_keyop():
