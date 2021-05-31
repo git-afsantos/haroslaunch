@@ -114,8 +114,8 @@ _RosparamDump = namedtuple('RosparamDump',
 _RosparamDump.cmd = 'dump'
 
 class LaunchInterpreter(object):
-    def __init__(self, system, include_absent=False):
-        self.system = system
+    def __init__(self, iface, include_absent=False):
+        self.iface = iface
         self.include_absent = include_absent
         self.rosparam_cmds = []
         self.parameters = []
@@ -125,11 +125,11 @@ class LaunchInterpreter(object):
     def interpret(self, filepath, args=None):
         # filepath is a pathlib Path
         # log debug interpret(filepath, args=args)
-        tree = self.system.request_parse_tree(filepath)
+        tree = self.iface.request_parse_tree(filepath)
         assert tree.tag == 'launch'
         tree.check_schema()
         args = dict(args) if args is not None else {}
-        scope = LaunchScope(filepath, self.system, args=args)
+        scope = LaunchScope(filepath, self.iface, args=args)
         self._interpret_tree(tree, scope)
         self.machines.extend(scope.machines.values())
 
@@ -137,11 +137,11 @@ class LaunchInterpreter(object):
         # filepaths is a list of pathlib Path
         # log debug interpret_many(filepaths, args=args)
         for filepath in filepaths:
-            tree = self.system.request_parse_tree(filepath)
+            tree = self.iface.request_parse_tree(filepath)
             assert tree.tag == 'launch'
             tree.check_schema()
             args = dict(args) if args is not None else {}
-            scope = LaunchScope(filepath, self.system, args=args)
+            scope = LaunchScope(filepath, self.iface, args=args)
             self._interpret_tree(tree, scope)
         # parameters can only be added in the end, because of rosparam
         # TODO
@@ -263,8 +263,8 @@ class LaunchInterpreter(object):
         value = tag.resolve_textfile(scope)
         if value.is_resolved:
             try:
-                # system check - if tag.textfile_attr.startswith('$(find ')
-                value = self.system.read_text_file(value.value)
+                # iface check - if tag.textfile_attr.startswith('$(find ')
+                value = self.iface.read_text_file(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
                 value = UnresolvedFileContents(value.value)
@@ -274,8 +274,8 @@ class LaunchInterpreter(object):
         value = tag.resolve_binfile(scope)
         if value.is_resolved:
             try:
-                # system check - if tag.binfile_attr.startswith('$(find ')
-                value = self.system.read_binary_file(value.value)
+                # iface check - if tag.binfile_attr.startswith('$(find ')
+                value = self.iface.read_binary_file(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
                 value = UnresolvedFileContents(value.value)
@@ -285,7 +285,7 @@ class LaunchInterpreter(object):
         value = tag.resolve_command(scope)
         if value.is_resolved:
             try:
-                value = self.system.execute_command(value.value)
+                value = self.iface.execute_command(value.value)
                 value = ResolvedString(value)
             except EnvironmentError as err:
                 value = UnresolvedCommandLine(value.value)
@@ -309,7 +309,7 @@ class LaunchInterpreter(object):
             yaml_text = tag.text
         elif filepath.is_resolved:
             try:
-                yaml_text = self.system.read_text_file(filepath.value)
+                yaml_text = self.iface.read_text_file(filepath.value)
             except EnvironmentError as err:
                 value = UnresolvedFileContents(filepath.value)
         else:
@@ -363,7 +363,7 @@ class LaunchInterpreter(object):
             self._clear_params(new_scope.ns)
         self._interpret_tree(tag, new_scope)
         new_scope = new_scope.new_launch()
-        tree = self.system.request_parse_tree(filepath) #!
+        tree = self.iface.request_parse_tree(filepath) #!
         assert tree.tag == 'launch'
         tree.check_schema() #!
         self._interpret_tree(tree, new_scope)

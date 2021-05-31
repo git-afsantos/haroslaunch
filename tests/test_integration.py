@@ -19,10 +19,10 @@ from haroslaunch.launch_interpreter import LaunchInterpreter
 from haroslaunch.launch_xml_parser import parse_from_file
 
 ###############################################################################
-# Mock System
+# Mock ROS Interface
 ###############################################################################
 
-class MockSystem(object):
+class MockInterface(object):
     def __init__(self):
         self.ast_cache = {}
         self.env = {}
@@ -88,8 +88,8 @@ class MockSystem(object):
 
 def test_kobuki_minimal():
     fp = Path(__file__).parent / 'launch' / 'kobuki_minimal.launch'
-    system = MockSystem()
-    lfi = LaunchInterpreter(system, include_absent=True)
+    iface = MockInterface()
+    lfi = LaunchInterpreter(iface, include_absent=True)
     lfi.interpret(fp)
     assert not lfi.machines
     assert not lfi.rosparam_cmds
@@ -216,8 +216,8 @@ def test_kobuki_minimal():
 
 def test_kobuki_safe_keyop():
     fp = Path(__file__).parent / 'launch' / 'kobuki_safe_keyop.launch'
-    system = MockSystem()
-    lfi = LaunchInterpreter(system, include_absent=True)
+    iface = MockInterface()
+    lfi = LaunchInterpreter(iface, include_absent=True)
     lfi.interpret(fp)
     assert not lfi.machines
     assert not lfi.rosparam_cmds
@@ -352,8 +352,8 @@ def test_kobuki_safe_keyop():
 
 def test_kobuki_minimal_safe_keyop():
     fp = Path(__file__).parent / 'launch' / 'kobuki_minimal.launch'
-    system = MockSystem()
-    lfi = LaunchInterpreter(system, include_absent=True)
+    iface = MockInterface()
+    lfi = LaunchInterpreter(iface, include_absent=True)
     lfi.interpret(fp)
     fp = Path(__file__).parent / 'launch' / 'kobuki_safe_keyop.launch'
     lfi.interpret(fp)

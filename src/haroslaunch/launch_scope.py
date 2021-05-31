@@ -112,7 +112,7 @@ def _ns_join(name, ns):
 class BaseScope(object):
     __slots__ = (
         'parent', # parent scope (subclass of `BaseScope`) or `None`
-        'system', # file system for queries
+        'iface', # file system for queries
         'ns', # `RosName` with the current namespace
         'args', # dict of `<arg>` with a defined `value`
         'arg_defaults', # dict of declared `<arg>` (with `default` or `None`)
@@ -126,10 +126,10 @@ class BaseScope(object):
         '_machine', # singleton list containing the default machine
     )
 
-    def __init__(self, parent, system, ns, args, arg_defaults, condition,
+    def __init__(self, parent, iface, ns, args, arg_defaults, condition,
                  anon, remaps, node_env, fwd_params, machines, def_machine):
         assert parent is None or isinstance(parent, BaseScope)
-        assert system is not None
+        assert iface is not None
         assert isinstance(ns, RosName)
         assert isinstance(args, dict)
         assert isinstance(arg_defaults, dict)
@@ -141,7 +141,7 @@ class BaseScope(object):
         assert isinstance(machines, dict)
         assert isinstance(def_machine, list) and len(def_machine) == 1
         self.parent = parent
-        self.system = system
+        self.iface = iface
         self.ns = ns
         self.args = args
         self.arg_defaults = arg_defaults
@@ -227,7 +227,7 @@ class BaseScope(object):
 
     def get_env(self, name):
         assert isinstance(name, str)
-        return self.system.get_environment_variable(name)
+        return self.iface.get_environment_variable(name)
 
     def set_env(self, name, value, condition):
         assert isinstance(name, str)
@@ -237,7 +237,7 @@ class BaseScope(object):
 
     def get_pkg_path(self, name):
         assert isinstance(name, str)
-        dirpath = self.system.get_package_path(name)
+        dirpath = self.iface.get_package_path(name)
         return None if dirpath is None else str(dirpath)
 
     def get_anonymous_name(self, name):
@@ -317,7 +317,7 @@ class BaseScope(object):
         assert pw is None or isinstance(pw, SolverResult)
         assert timeout is None or isinstance(timeout, SolverResult)
         if env_loader is None:
-            distro = self.system.ros_distro
+            distro = self.iface.ros_distro
             env_loader = ResolvedString('/opt/ros/{}/env.sh'.format(distro))
         # TODO: mimic 'localhost' address replacement
         m = RosMachine(name, address, is_assignable=is_assignable,
@@ -338,7 +338,7 @@ class BaseScope(object):
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         ns = RosName(ns, self.ns, pns=self.private_ns)
         condition = self.condition.join(condition).simplify()
-        return GroupScope(self, self.system, ns, dict(self.args),
+        return GroupScope(self, self.iface, ns, dict(self.args),
             dict(self.arg_defaults), condition, self.anonymous,
             VariantDict(self.remaps), VariantDict(self.node_env),
             list(self.fwd_params), self.machines, self._machine)
@@ -377,7 +377,7 @@ class BaseScope(object):
             required=required, respawn=respawn, delay=delay, output=output,
             cwd=cwd, prefix=prefix, remaps=remaps, env=env, condition=condition,
             location=location)
-        return NodeScope(node, self, self.system, dict(self.args),
+        return NodeScope(node, self, self.iface, dict(self.args),
             dict(self.arg_defaults), self.anonymous, self.machines,
             self._machine)
 
@@ -406,7 +406,7 @@ class BaseScope(object):
         test = RosTest(test_name, ros_name, pkg, exe, args=args, cwd=cwd,
             prefix=prefix, retries=retry, time_limit=time_limit, remaps=remaps,
             env=env, condition=condition, location=location)
-        return NodeScope(test, self, self.system, dict(self.args),
+        return NodeScope(test, self, self.iface, dict(self.args),
             dict(self.arg_defaults), self.anonymous, self.machines,
             self._machine)
 
@@ -419,7 +419,7 @@ class BaseScope(object):
         ns = RosName(ns, self.ns, pns=self.private_ns)
         filepath = Path(filepath)
         condition = self.condition.join(condition).simplify()
-        scope = IncludeScope(filepath, self, self.system, ns,
+        scope = IncludeScope(filepath, self, self.iface, ns,
             dict(self.args), dict(self.arg_defaults), condition,
             self.anonymous, VariantDict(self.remaps),
             VariantDict(self.node_env), list(self.fwd_params),
@@ -432,7 +432,7 @@ class BaseScope(object):
 class LaunchScope(BaseScope):
     __slots__ = BaseScope.__slots__ + ('_filepath',)
 
-    def __init__(self, filepath, system, ns='/', args=None, anon=None,
+    def __init__(self, filepath, iface, ns='/', args=None, anon=None,
                  remaps=None, node_env=None, fwd_params=None,
                  machines=None, def_machine=None):
         assert isinstance(filepath, Path)
@@ -449,7 +449,7 @@ class LaunchScope(BaseScope):
             def_machine = machines[def_machine]
         if def_machine is None or isinstance(def_machine, RosMachine):
             def_machine = [def_machine]
-        super(LaunchScope, self).__init__(None, system, ns, args,
+        super(LaunchScope, self).__init__(None, iface, ns, args,
             arg_defaults, LOGIC_TRUE, anon, remaps, node_env,
             fwd_params, machines, def_machine)
         self._filepath = filepath
@@ -466,7 +466,7 @@ class GroupScope(BaseScope):
 class NodeScope(BaseScope):
     __slots__ = BaseScope.__slots__ + ('node',)
 
-    def __init__(self, node, parent, system, args, arg_defaults, anon,
+    def __init__(self, node, parent, iface, args, arg_defaults, anon,
                  machines, def_machine):
         assert isinstance(node, RosNode)
         self.node = node
@@ -474,7 +474,7 @@ class NodeScope(BaseScope):
         condition = node.condition
         remaps = node.remaps
         env = node.environment
-        super(NodeScope, self).__init__(parent, system, ns, args, arg_defaults,
+        super(NodeScope, self).__init__(parent, iface, ns, args, arg_defaults,
             condition, anon, remaps, env, [], machines, def_machine)
 
     @property
@@ -517,10 +517,10 @@ class NodeScope(BaseScope):
 class IncludeScope(BaseScope):
     __slots__ = BaseScope.__slots__ + ('_filepath', 'passed_args')
 
-    def __init__(self, filepath, parent, system, ns, args, arg_defaults,
+    def __init__(self, filepath, parent, iface, ns, args, arg_defaults,
                  condition, anon, remaps, node_env, fwd_params, machines,
                  def_machine):
-        super(IncludeScope, self).__init__(parent, system, ns,
+        super(IncludeScope, self).__init__(parent, iface, ns,
             args, arg_defaults, condition, anon, remaps, node_env,
             fwd_params, machines, def_machine)
         self._filepath = filepath
@@ -566,7 +566,7 @@ class IncludeScope(BaseScope):
         raise NotImplementedError()
 
     def new_launch(self):
-        return LaunchScope(self._filepath, self.system, ns=self.ns,
+        return LaunchScope(self._filepath, self.iface, ns=self.ns,
             args=dict(self.passed_args), anon=self.anonymous,
             remaps=VariantDict(self.remaps),
             node_env=VariantDict(self.node_env),
