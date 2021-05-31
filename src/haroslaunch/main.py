@@ -9,8 +9,9 @@
 
 from __future__ import print_function
 from argparse import ArgumentParser
-import json
 import errno
+import json
+from pathlib import Path
 from sys import exit
 
 from .launch_interpreter import LaunchInterpreter, LaunchInterpreterError
@@ -37,7 +38,7 @@ def workflow_interpret_xml(args):
     system = SimpleRosInterface()
     lfi = LaunchInterpreter(system, include_absent=True)
     for filepath in args.launch_files:
-        lfi.interpret(filepath)
+        lfi.interpret(Path(filepath))
     return lfi.to_JSON_object()
 
 
