@@ -88,7 +88,7 @@ def _solver_result_to_JSON(self):
         }
     else:
         return {
-            'value': [s if not isinstance(UnknownValue)
+            'value': [s if not isinstance(s, UnknownValue)
                         else s.to_JSON_object()
                         for s in self.value],
             'var_type': self.var_type,
