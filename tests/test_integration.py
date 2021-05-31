@@ -205,8 +205,7 @@ def test_kobuki_minimal():
         assert p.system is None
         assert p.condition.is_true
         assert p.traceability.filepath.endswith('/kobuki_minimal.launch')
-        assert p.traceability.line == 6 or (p.traceability.line == 7
-            and p.name.full == '/mobile_base/publish_tf')
+        assert p.traceability.line in (6, 7, 13)
         assert p.traceability.column == 5
         assert p.value.value == params[p.name.full]
 
