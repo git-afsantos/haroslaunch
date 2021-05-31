@@ -14,7 +14,7 @@ import errno
 from sys import exit
 
 from .launch_interpreter import LaunchInterpreter, LaunchInterpreterError
-import .launch_xml_parser as LaunchXmlParser
+from .launch_xml_parser import parse_from_file
 from .ros_iface import SimpleRosInterface
 
 ###############################################################################
@@ -25,7 +25,7 @@ def workflow_parse_xml(args):
     trees = {}
     for filepath in args.launch_files:
         try:
-            tree = LaunchXmlParser.parse_from_file(filepath)
+            tree = parse_from_file(filepath)
             trees[filepath] = tree.to_JSON_object()
         except EnvironmentError as e:
             if e.errno != errno.ENOENT:
