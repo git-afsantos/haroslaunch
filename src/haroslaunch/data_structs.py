@@ -161,6 +161,16 @@ def _scope_condition_as_string(self, wildcard=VAR_STRING):
 
 ScopeCondition.as_string = _scope_condition_as_string
 
+def _scope_condition_to_json(self):
+    return {
+        'statement': self.statement,
+        'value': self.value.to_JSON_object(),
+        'location': (None if self.location is None
+                          else self.location.to_JSON_object())
+    }
+
+ScopeCondition.to_JSON_object = _scope_condition_to_json
+
 def IfCondition(value, location):
     return ScopeCondition('if', value, location)
 

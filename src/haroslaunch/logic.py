@@ -73,6 +73,9 @@ class LogicTrue(LogicValue):
     def disjoin(self, value):
         return self
 
+    def to_JSON_object(self):
+        return True
+
     def __repr__(self):
         return '{}()'.format(type(self).__name__)
 
@@ -100,6 +103,9 @@ class LogicFalse(LogicValue):
 
     def disjoin(self, value):
         return value
+
+    def to_JSON_object(self):
+        return False
 
     def __repr__(self):
         return '{}()'.format(type(self).__name__)
@@ -135,6 +141,17 @@ class LogicVariable(LogicValue):
     @property
     def is_variable(self):
         return True
+
+    def to_JSON_object(self):
+        try:
+            data = self.data.to_JSON_object()
+        except AttributeError:
+            data = str(self.data)
+        return {
+            'name': self.name,
+            'text': self.text,
+            'data': data,
+        }
 
     def __repr__(self):
         return '{}({!r}, {!r}, name={!r})'.format(type(self).__name__,
@@ -173,6 +190,9 @@ class LogicNot(LogicValue):
         if operand.is_false:
             return LogicValue.T
         return self
+
+    def to_JSON_object(self):
+        return ['not', self.operand.to_JSON_object()]
 
     def __repr__(self):
         return '{}({!r})'.format(type(self).__name__, self.operand)
@@ -232,6 +252,9 @@ class LogicAnd(LogicValue):
             for x in operands:
                 return x
         return LogicAnd(operands)
+
+    def to_JSON_object(self):
+        return ['and'] + [arg.to_JSON_object() for arg in self.operands]
 
     def __repr__(self):
         return '{}({!r})'.format(type(self).__name__, self.operands)
@@ -296,6 +319,9 @@ class LogicOr(LogicValue):
             for x in operands:
                 return x
         return LogicOr(operands)
+
+    def to_JSON_object(self):
+        return ['or'] + [arg.to_JSON_object() for arg in self.operands]
 
     def __repr__(self):
         return '{}({!r})'.format(type(self).__name__, self.operands)
