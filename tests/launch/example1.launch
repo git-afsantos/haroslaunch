@@ -1,0 +1,15 @@
+<launch>
+  <arg name="topic_name"/>
+  <arg name="fast_pub" />
+
+  <node pkg="rostopic" type="rostopic" name="listener"
+    args="echo $(arg topic_name)"/>
+
+  <node pkg="rostopic" type="rostopic" name="publisher"
+    args="pub -r 1 $(arg topic_name) std_msgs/String hello"
+    unless="$(arg fast_pub)" />
+
+  <node pkg="rostopic" type="rostopic" name="publisher"
+    args="pub -r 10 $(arg topic_name) std_msgs/String hello"
+    if="$(arg fast_pub)" />
+</launch>
