@@ -210,6 +210,10 @@ def test_kobuki_minimal():
         assert p.value.value == params[p.name.full]
 
 
+###############################################################################
+# Test Kobuki Safe Teleoperation
+###############################################################################
+
 def test_kobuki_safe_keyop():
     fp = Path(__file__).parent / 'launch' / 'kobuki_safe_keyop.launch'
     system = MockSystem()
@@ -341,6 +345,10 @@ def test_kobuki_safe_keyop():
         assert p.traceability.column == 5
         assert p.value.value == params[p.name.full]
 
+
+###############################################################################
+# Test Kobuki Safe Teleoperation (Full)
+###############################################################################
 
 def test_kobuki_minimal_safe_keyop():
     fp = Path(__file__).parent / 'launch' / 'kobuki_minimal.launch'
