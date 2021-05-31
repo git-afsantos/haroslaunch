@@ -95,3 +95,27 @@ def test_kobuki_minimal():
     assert not lfi.rosparam_cmds
     assert len(lfi.nodes) > 0
     assert len(lfi.parameters) > 0
+
+
+def test_kobuki_safe_keyop():
+    fp = Path(__file__).parent / 'launch' / 'kobuki_safe_keyop.launch'
+    system = MockSystem()
+    lfi = LaunchInterpreter(system, include_absent=True)
+    lfi.interpret(fp)
+    assert not lfi.machines
+    assert not lfi.rosparam_cmds
+    assert len(lfi.nodes) > 0
+    assert len(lfi.parameters) > 0
+
+
+def test_kobuki_minimal_safe_keyop():
+    fp = Path(__file__).parent / 'launch' / 'kobuki_minimal.launch'
+    system = MockSystem()
+    lfi = LaunchInterpreter(system, include_absent=True)
+    lfi.interpret(fp)
+    fp = Path(__file__).parent / 'launch' / 'kobuki_safe_keyop.launch'
+    lfi.interpret(fp)
+    assert not lfi.machines
+    assert not lfi.rosparam_cmds
+    assert len(lfi.nodes) > 0
+    assert len(lfi.parameters) > 0
