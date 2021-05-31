@@ -298,7 +298,7 @@ class RosNode(RosResource):
             'package': self.package,
             'executable': self.executable,
             'machine': _json_obj(self.machine),
-            'is_required': self.is_required,
+            'is_required': self.is_required.to_JSON_object(),
             'respawns': self.respawns.to_JSON_object(),
             'respawn_delay': self.respawn_delay.to_JSON_object(),
             'args': self.args.to_JSON_object(),
