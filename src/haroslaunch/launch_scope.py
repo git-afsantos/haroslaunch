@@ -274,7 +274,7 @@ class BaseScope(object):
         assert location is None or isinstance(location, SourceLocation)
         RosName.check_valid_name(ns, no_ns=False, no_empty=False)
         pns = '/roslaunch' if self.private_ns == self.ns else self.private_ns
-        ns = RosName.resolve(ns, self.ns, pns=self.private_ns)
+        ns = RosName.resolve(ns, ns=self.private_ns, pns=self.private_ns)
         ros_name = RosName(name, ns=ns, pns=self.private_ns)
         if param_type == TYPE_YAML:
             RosName.check_valid_name(name, no_ns=False, no_empty=False)
