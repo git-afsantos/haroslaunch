@@ -176,9 +176,32 @@ def test_kobuki_minimal():
         '/mobile_base/use_imu_heading': True,
         '/mobile_base/odom_frame': 'odom',
         '/mobile_base/base_frame': 'base_footprint',
+        '/diagnostic_aggregator/pub_rate': 1.0,
+        '/diagnostic_aggregator/base_path': '',
+        '/diagnostic_aggregator/analyzers/power/type': 'diagnostic_aggregator/GenericAnalyzer',
+        '/diagnostic_aggregator/analyzers/power/path': 'Power System',
+        '/diagnostic_aggregator/analyzers/power/timeout': 5.0,
+        '/diagnostic_aggregator/analyzers/power/contains': ['Battery'],
+        '/diagnostic_aggregator/analyzers/power/remove_prefix': 'mobile_base_nodelet_manager',
+        '/diagnostic_aggregator/analyzers/kobuki/type': 'diagnostic_aggregator/GenericAnalyzer',
+        '/diagnostic_aggregator/analyzers/kobuki/path': 'Kobuki',
+        '/diagnostic_aggregator/analyzers/kobuki/timeout': 5.0,
+        '/diagnostic_aggregator/analyzers/kobuki/contains': ['Watchdog', 'Motor State'],
+        '/diagnostic_aggregator/analyzers/kobuki/remove_prefix': 'mobile_base_nodelet_manager',
+        '/diagnostic_aggregator/analyzers/sensors/type': 'diagnostic_aggregator/GenericAnalyzer',
+        '/diagnostic_aggregator/analyzers/sensors/path': 'Sensors',
+        '/diagnostic_aggregator/analyzers/sensors/timeout': 5.0,
+        '/diagnostic_aggregator/analyzers/sensors/contains': ['Cliff Sensor',
+            'Wall Sensor', 'Wheel Drop', 'Motor Current', 'Gyro Sensor'],
+        '/diagnostic_aggregator/analyzers/sensors/remove_prefix': 'mobile_base_nodelet_manager',
+        '/diagnostic_aggregator/analyzers/input_ports/type': 'diagnostic_aggregator/GenericAnalyzer',
+        '/diagnostic_aggregator/analyzers/input_ports/path': 'Input Ports',
+        '/diagnostic_aggregator/analyzers/input_ports/timeout': 5.0,
+        '/diagnostic_aggregator/analyzers/input_ports/contains': ['Digital Input', 'Analog Input'],
+        '/diagnostic_aggregator/analyzers/input_ports/remove_prefix': 'mobile_base_nodelet_manager',
     }
     for p in lfi.parameters:
-        assert p.namespace == '/mobile_base'
+        assert p.namespace in ('/mobile_base', '/diagnostic_aggregator')
         assert p.system is None
         assert p.condition.is_true
         assert p.traceability.filepath.endswith('/kobuki_minimal.launch')
