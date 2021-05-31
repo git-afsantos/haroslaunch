@@ -104,7 +104,7 @@ def test_kobuki_minimal():
     assert node.condition.is_true
     assert node.traceability.filepath.endswith('/kobuki_minimal.launch')
     assert node.traceability.line == 4
-    assert node.traceability.column == 4
+    assert node.traceability.column == 3
     assert node.package == 'nodelet'
     assert node.executable == 'nodelet'
     assert node.machine is None
@@ -126,7 +126,7 @@ def test_kobuki_minimal():
     assert node.condition.is_true
     assert node.traceability.filepath.endswith('/kobuki_minimal.launch')
     assert node.traceability.line == 5
-    assert node.traceability.column == 4
+    assert node.traceability.column == 3
     assert node.package == 'nodelet'
     assert node.executable == 'nodelet'
     assert node.machine is None
@@ -150,7 +150,7 @@ def test_kobuki_minimal():
     assert node.condition.is_true
     assert node.traceability.filepath.endswith('/kobuki_minimal.launch')
     assert node.traceability.line == 12
-    assert node.traceability.column == 4
+    assert node.traceability.column == 3
     assert node.package == 'diagnostic_aggregator'
     assert node.executable == 'aggregator_node'
     assert node.machine is None
@@ -184,7 +184,7 @@ def test_kobuki_minimal():
         assert p.traceability.filepath.endswith('/kobuki_minimal.launch')
         assert p.traceability.line == 6 or (p.traceability.line == 7
             and p.name.full == '/mobile_base/publish_tf')
-        assert p.traceability.column == 6
+        assert p.traceability.column == 5
         assert p.value.value == params[p.name.full]
 
 
