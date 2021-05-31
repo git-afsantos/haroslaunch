@@ -43,7 +43,7 @@ class SimpleRosInterface(object):
                     return str(d)
         d = os.environ.get('ROS_ROOT')
         if d:
-            d = Path(d) / 'share' / name
+            d = Path(d).parent / name
             if d.is_dir():
                 p = d / 'package.xml'
                 if p.is_file():
@@ -52,7 +52,8 @@ class SimpleRosInterface(object):
 
     def request_parse_tree(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE', os.environ.get('ROS_ROOT'))
+        safe_dir = os.environ.get('ROS_WORKSPACE')
+        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
         if safe_dir and not filepath.startswith(safe_dir):
             raise ValueError(filepath)
         ast = self.ast_cache.get(filepath)
@@ -63,7 +64,8 @@ class SimpleRosInterface(object):
 
     def read_text_file(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE', os.environ.get('ROS_ROOT'))
+        safe_dir = os.environ.get('ROS_WORKSPACE')
+        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
         if safe_dir and not filepath.startswith(safe_dir):
             raise ValueError(filepath)
         try:
@@ -75,7 +77,8 @@ class SimpleRosInterface(object):
 
     def read_binary_file(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE', os.environ.get('ROS_ROOT'))
+        safe_dir = os.environ.get('ROS_WORKSPACE')
+        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
         if safe_dir and not filepath.startswith(safe_dir):
             raise ValueError(filepath)
         try:
