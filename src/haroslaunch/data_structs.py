@@ -38,6 +38,9 @@ SourceLocation = namedtuple('SourceLocation', (
     'column'    # int > 0
 ))
 
+# alias
+SourceLocation.to_JSON_object = SourceLocation._asdict
+
 
 ###############################################################################
 # Unknown Values and Variables
@@ -49,6 +52,15 @@ UnknownValue = namedtuple('UnknownValue', (
     'args', # (string)
     'text'  # string
 ))
+
+def _uv_to_JSON(self):
+    return {
+        'cmd': self.cmd,
+        'args': list(self.args),
+        'text': self.text
+    }
+
+UnknownValue.to_JSON_object = _uv_to_JSON
 
 
 SolverResult = namedtuple('SolverResult', (
@@ -65,6 +77,26 @@ def _solver_result_as_string(self, wildcard=VAR_STRING):
                    for x in self.value)
 
 SolverResult.as_string = _solver_result_as_string
+
+def _solver_result_to_JSON(self):
+    if self.is_resolved:
+        return  {
+            'value': self.value,
+            'var_type': self.var_type,
+            'is_resolved': True,
+            'unknown': None
+        }
+    else:
+        return {
+            'value': [s if not isinstance(UnknownValue)
+                        else s.to_JSON_object()
+                        for s in self.value],
+            'var_type': self.var_type,
+            'is_resolved': False,
+            'unknown': [u.to_JSON_object() for u in self.unknown]
+        }
+
+SolverResult.to_JSON_object = _solver_result_to_JSON
 
 # alias
 SolverResult.param_type = property(lambda self: self.var_type)

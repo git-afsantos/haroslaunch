@@ -122,6 +122,14 @@ class LaunchInterpreter(object):
         self.nodes = []
         self.machines = []
 
+    def to_JSON_object(self):
+        return {
+            'rosparam': [c._asdict() for c in self.rosparam_cmds],
+            'nodes': [r.to_JSON_object() for r in self.nodes],
+            'parameters': [r.to_JSON_object() for r in self.parameters],
+            'machines': [m.to_JSON_object() for m in self.machines]
+        }
+
     def interpret(self, filepath, args=None):
         # filepath is a pathlib Path
         # log debug interpret(filepath, args=args)

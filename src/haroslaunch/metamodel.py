@@ -19,6 +19,22 @@ from .data_structs import (
 from .logic import LOGIC_TRUE
 
 ###############################################################################
+# Helper Functions
+###############################################################################
+
+def _json_obj(item):
+    if item is None:
+        return None
+    try:
+        return item.to_JSON_object()
+    except AttributeError:
+        if isinstance(item, dict):
+            return {k: _json_obj(v) for k, v in item.items()}
+        if isinstance(item, (list, tuple)):
+            return [_json_obj(v) for v in item]
+        return item
+
+###############################################################################
 # ROS Names
 ###############################################################################
 
@@ -181,6 +197,18 @@ class RosMachine(object):
         self.password = pw
         self.timeout = timeout or ResolvedDouble(10.0)
 
+    def to_JSON_object(self):
+        return {
+            'name': self.name,
+            'address': self.address,
+            'is_assignable': self.is_assignable,
+            'env_loader': self.env_loader.to_JSON_object(),
+            'ssh_port': self.ssh_port.to_JSON_object(),
+            'user': _json_obj(self.user),
+            'password': _json_obj(self.password),
+            'timeout': self.timeout.to_JSON_object(),
+        }
+
     def __eq__(self, other):
         if not isinstance(other, RosMachine):
             return False
@@ -260,6 +288,27 @@ class RosNode(RosResource):
     def is_test_node(self):
         return False
 
+    def to_JSON_object(self):
+        return {
+            'name': self.name.full,
+            'system': self.system,
+            'traceability': _json_obj(self.traceability),
+            'condition': str(self.condition),
+            'is_test_node': False,
+            'package': self.package,
+            'executable': self.executable,
+            'machine': _json_obj(self.machine),
+            'is_required': self.is_required,
+            'respawns': self.respawns.to_JSON_object(),
+            'respawn_delay': self.respawn_delay.to_JSON_object(),
+            'args': self.args.to_JSON_object(),
+            'output': self.output.to_JSON_object(),
+            'working_dir': self.working_dir.to_JSON_object(),
+            'launch_prefix': _json_obj(self.launch_prefix),
+            'remaps': _json_obj(self.remaps),
+            'environment': _json_obj(self.environment),
+        }
+
 
 class RosTest(RosResource):
     __slots__ = RosResource.__slots__ + (
@@ -297,6 +346,25 @@ class RosTest(RosResource):
     def is_test_node(self):
         return True
 
+    def to_JSON_object(self):
+        return {
+            'name': self.name.full,
+            'system': self.system,
+            'traceability': _json_obj(self.traceability),
+            'condition': str(self.condition),
+            'is_test_node': True,
+            'package': self.package,
+            'executable': self.executable,
+            'args': self.args.to_JSON_object(),
+            'output': self.output.to_JSON_object(),
+            'working_dir': self.working_dir.to_JSON_object(),
+            'launch_prefix': _json_obj(self.launch_prefix),
+            'retries': self.retries.to_JSON_object(),
+            'time_limit': self.time_limit.to_JSON_object(),
+            'remaps': _json_obj(self.remaps),
+            'environment': _json_obj(self.environment),
+        }
+
 
 class RosParameter(RosResource):
     __slots__ = RosResource.__slots__ + (
@@ -310,3 +378,13 @@ class RosParameter(RosResource):
             condition=condition, location=location)
         self.param_type = param_type
         self.value = value
+
+    def to_JSON_object(self):
+        return {
+            'name': self.name.full,
+            'system': self.system,
+            'traceability': _json_obj(self.traceability),
+            'condition': str(self.condition),
+            'param_type': self.param_type,
+            'value': self.value.to_JSON_object(),
+        }
