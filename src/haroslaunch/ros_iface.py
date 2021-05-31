@@ -23,8 +23,9 @@ from .launch_xml_parser import parse_from_file
 ###############################################################################
 
 class SimpleRosInterface(object):
-    def __init__(self):
+    def __init__(self, strict=False):
         self.ast_cache = {}
+        self.strict = strict
 
     @property
     def ros_distro(self):
@@ -52,10 +53,11 @@ class SimpleRosInterface(object):
 
     def request_parse_tree(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE')
-        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
-        if safe_dir and not filepath.startswith(safe_dir):
-            raise ValueError(filepath)
+        if self.strict:
+            safe_dir = os.environ.get('ROS_WORKSPACE')
+            safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
+            if safe_dir and not filepath.startswith(safe_dir):
+                raise ValueError(filepath)
         ast = self.ast_cache.get(filepath)
         if ast is None:
             ast = parse_from_file(filepath) #!
@@ -64,10 +66,11 @@ class SimpleRosInterface(object):
 
     def read_text_file(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE')
-        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
-        if safe_dir and not filepath.startswith(safe_dir):
-            raise ValueError(filepath)
+        if self.strict:
+            safe_dir = os.environ.get('ROS_WORKSPACE')
+            safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
+            if safe_dir and not filepath.startswith(safe_dir):
+                raise ValueError(filepath)
         try:
             return Path(filepath).read_text()
         except AttributeError: # Python 2
@@ -77,10 +80,11 @@ class SimpleRosInterface(object):
 
     def read_binary_file(self, filepath):
         filepath = str(filepath)
-        safe_dir = os.environ.get('ROS_WORKSPACE')
-        safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
-        if safe_dir and not filepath.startswith(safe_dir):
-            raise ValueError(filepath)
+        if self.strict:
+            safe_dir = os.environ.get('ROS_WORKSPACE')
+            safe_dir = safe_dir or str(Path(os.environ.get('ROS_ROOT')).parent)
+            if safe_dir and not filepath.startswith(safe_dir):
+                raise ValueError(filepath)
         try:
             return Binary(Path(filepath).read_bytes()).data
         except AttributeError: # Python 2
