@@ -201,7 +201,7 @@ def test_kobuki_minimal():
         '/diagnostic_aggregator/analyzers/input_ports/remove_prefix': 'mobile_base_nodelet_manager',
     }
     for p in lfi.parameters:
-        assert p.namespace in ('/mobile_base', '/diagnostic_aggregator')
+        assert p.namespace.full.startswith(('/mobile_base', '/diagnostic_aggregator'))
         assert p.system is None
         assert p.condition.is_true
         assert p.traceability.filepath.endswith('/kobuki_minimal.launch')
