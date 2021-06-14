@@ -24,10 +24,14 @@ When used as a library, you can generate runtime models of the entities that wou
 For example:
 
 ```python
-from haroslaunch import LaunchInterpreter
+from pathlib import Path
+from haroslaunch.launch_interpreter import LaunchInterpreter
+from haroslaunch.ros_iface import SimpleRosInterface
 
-rli = LaunchInterpreter()
-rli.interpret('path/to/file.launch')
+fp = Path('path/to/file.launch')
+iface = SimpleRosInterface()
+rli = LaunchInterpreter(iface)
+rli.interpret(fp)
 print(rli.rosparam_cmds)
 print(rli.parameters)
 print(rli.nodes)
