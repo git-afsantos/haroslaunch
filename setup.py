@@ -29,7 +29,7 @@ setup(
     name             = 'haroslaunch',
     version          = __version__,
     author           = u'André Santos',
-    author_email     = 'contact.andre.santos@gmail.com',
+    author_email     = 'haros.framework@gmail.com',
     description      = 'ROS launch file parser',
     long_description = read('README.md'),
     long_description_content_type = 'text/markdown',
